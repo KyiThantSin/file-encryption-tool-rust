@@ -1,6 +1,6 @@
 use iced::{
     alignment::{Horizontal, Vertical},
-    widget::{column, text, container, Space, pick_list},
+    widget::{column, text, container, Space, pick_list, row},
     Length, Sandbox, Settings, Element, Theme,
 };
 
@@ -71,33 +71,37 @@ impl Sandbox for MyApp {
                         .width(Length::Fill)
                         .horizontal_alignment(Horizontal::Left)
                         .vertical_alignment(Vertical::Center),
-
+    
                     Space::with_height(10),
-
+    
                     text("Your Trusted File Encryption Tool")
                         .width(Length::Fill)
                 ]
             )
             .padding([50, 50])
             .width(Length::Fill),
-
+    
             container(
                 column![
-                    text("Encora supports two encryption algorithms: ChaCha20 and AES.")
-                        .width(Length::Fill),
+                    row![
+                        text("Encora supports two encryption algorithms: ChaCha20 and AES.")
+                            .width(Length::Shrink),
+                        Space::with_width(Length::Fill),
+                        pick_list(
+                            &Algorithms::ALL[..], 
+                            self.selected_algorithm,  // current selected algorithm
+                            MyAppMessage::AlgorithmSelected 
+                        )
+                        .placeholder("Select an algorithm")
+                        .width(Length::Shrink),
+                    ]
+                    .width(Length::Fill),
+    
                     Space::with_height(9),
+    
                     text("Please choose one to proceed with encryption.")
                         .width(Length::Fill),
-
-                    // selecting algorithm
-                    pick_list(
-                        &Algorithms::ALL[..], 
-                        self.selected_algorithm,  // current selected algorithm
-                        MyAppMessage::AlgorithmSelected 
-                    )
-                    .placeholder("Select an algorithm")
-                    .width(Length::Shrink),
-
+    
                     text(
                         self.selected_algorithm
                             .map_or("No algorithm selected".to_string(), |alg| format!("Selected: {}", alg))
@@ -106,11 +110,12 @@ impl Sandbox for MyApp {
                     .horizontal_alignment(Horizontal::Center)
                 ]
             )
-            .padding([10,50])
+            .padding([10, 50])
             .width(Length::Fill),
         ]
         .into()
     }
+    
 }
 
 fn main() -> iced::Result {
