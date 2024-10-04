@@ -7,10 +7,9 @@ use rfd::FileDialog;
 
 #[derive(Debug, Clone)]
 enum MyAppMessage {
-    DoNothing,
     AlgorithmSelected(Algorithms),
-    Open10,
-    Close11,
+    StartEncryption,  
+    StopDecryption,
     FileSelected(Option<std::path::PathBuf>), 
     OpenFileDialog, 
 }
@@ -36,8 +35,8 @@ impl std::fmt::Display for Algorithms {
 
 struct MyApp {
     selected_algorithm: Option<Algorithms>,
-    info_10: String,
-    info_11: String,
+    encryption_status: String,  // Renamed from info_10
+    decryption_status: String,  // Renamed from info_11
     selected_file: Option<std::path::PathBuf>,
 }
 
@@ -47,8 +46,8 @@ impl Sandbox for MyApp {
     fn new() -> Self {
          Self { 
              selected_algorithm: None, 
-             info_10: "".into(),
-             info_11: "".into(),
+             encryption_status: "".into(),
+             decryption_status: "".into(),
              selected_file: None,
          }
     }
@@ -59,7 +58,6 @@ impl Sandbox for MyApp {
 
     fn update(&mut self, message: Self::Message) {
         match message {
-            MyAppMessage::DoNothing => {}
             MyAppMessage::AlgorithmSelected(algorithm) => {
                 self.selected_algorithm = Some(algorithm);
             },
@@ -73,8 +71,8 @@ impl Sandbox for MyApp {
                     self.update(MyAppMessage::FileSelected(None));
                 }
             },
-            MyAppMessage::Open10 => self.info_10 = "Open".into(),
-            MyAppMessage::Close11 => self.info_11 = "Close".into(),
+            MyAppMessage::StartEncryption => self.encryption_status = "Encryption started".into(),
+            MyAppMessage::StopDecryption => self.decryption_status = "Decryption stopped".into(),
         }
     }
 
