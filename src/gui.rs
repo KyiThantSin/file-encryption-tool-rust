@@ -40,6 +40,7 @@ pub struct MyApp {
     pub encryption_status: String,
     pub decryption_status: String,
     pub selected_file: Option<std::path::PathBuf>,
+    pub file_content: String,
 }
 
 impl Sandbox for MyApp {
@@ -51,6 +52,7 @@ impl Sandbox for MyApp {
             encryption_status: "".into(),
             decryption_status: "".into(),
             selected_file: None,
+            file_content: "".into(),
         }
     }
 
@@ -75,11 +77,16 @@ impl Sandbox for MyApp {
             }
             MyAppMessage::StartEncryption => {
                 self.encryption_status = "Encryption started".into();
-                // Add your encryption logic here
+                println!("Selected File Name: {:?}", self.selected_file);
+                println!("Selected Algorithm: {:?}", self.selected_algorithm.unwrap());
+                if self.selected_algorithm.unwrap() == Algorithms::ChaCha20 {
+                    if let Ok(content) = read_file("src/crypto/example.txt") {
+                        self.file_content = content; 
+                    }
+                }
             }
             MyAppMessage::StopDecryption => {
                 self.decryption_status = "Decryption stopped".into();
-                // Add your decryption logic here
             }
         }
     }
@@ -114,7 +121,7 @@ impl Sandbox for MyApp {
                 text("Please choose one to proceed with encryption.").width(Length::Fill),
                 text(self.selected_algorithm.map_or(
                     "No algorithm selected".to_string(),
-                    |alg| format!("Selected: {}", alg)
+                    |_| "".to_string()
                 ))
                 .width(Length::Fill)
                 .horizontal_alignment(Horizontal::Center)
@@ -129,7 +136,7 @@ impl Sandbox for MyApp {
                     Space::with_height(10),
                     self.selected_file.as_ref().map_or_else(
                         || text("No file selected"),
-                        |path| text(format!("Selected file: {}", path.display()))
+                        |_| text("")
                     ),
                     Space::with_height(20),
                     row![
@@ -142,8 +149,13 @@ impl Sandbox for MyApp {
                             .padding(10),
                     ]
                     .align_items(iced::Alignment::Center),
+
+                    text(&self.file_content)
+                    .width(Length::Fill)
+                    .horizontal_alignment(Horizontal::Center),
                 ]
                 .align_items(iced::Alignment::Center)
+                
             )
             .padding(20)
             .center_x()
