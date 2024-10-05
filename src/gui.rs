@@ -1,4 +1,5 @@
-// use crate::crypto::chacha20;
+use crate::crypto::chacha20::read_file;
+
 use iced::{
     alignment::{Horizontal, Vertical},
     widget::{button, column, container, pick_list, row, text, Space},
@@ -72,8 +73,14 @@ impl Sandbox for MyApp {
                     self.update(MyAppMessage::FileSelected(None));
                 }
             }
-            MyAppMessage::StartEncryption => self.encryption_status = "Encryption started".into(),
-            MyAppMessage::StopDecryption => self.decryption_status = "Decryption stopped".into(),
+            MyAppMessage::StartEncryption => {
+                self.encryption_status = "Encryption started".into();
+                // Add your encryption logic here
+            }
+            MyAppMessage::StopDecryption => {
+                self.decryption_status = "Decryption stopped".into();
+                // Add your decryption logic here
+            }
         }
     }
 
@@ -123,7 +130,18 @@ impl Sandbox for MyApp {
                     self.selected_file.as_ref().map_or_else(
                         || text("No file selected"),
                         |path| text(format!("Selected file: {}", path.display()))
-                    )
+                    ),
+                    Space::with_height(20),
+                    row![
+                        button(text("Encrypt"))
+                            .on_press(MyAppMessage::StartEncryption)
+                            .padding(10),
+                        Space::with_width(20),
+                        button(text("Decrypt"))
+                            .on_press(MyAppMessage::StopDecryption)
+                            .padding(10),
+                    ]
+                    .align_items(iced::Alignment::Center),
                 ]
                 .align_items(iced::Alignment::Center)
             )
