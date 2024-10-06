@@ -23,7 +23,7 @@ impl Sizes {
     }
 }
 
-pub fn encrypt_file<T: AsRef<Path>>(file_path: T) -> Result<(), std::io::Error> {
+pub fn encrypt_file<T: AsRef<Path>>(file_path: T) -> Result<([u8; 32], [u8; 12]), std::io::Error> {
     let sizes = Sizes::new();
     let (key, nonce) = sizes.generate();
 
@@ -49,7 +49,7 @@ pub fn encrypt_file<T: AsRef<Path>>(file_path: T) -> Result<(), std::io::Error> 
     file.write_all(&data)?;
     println!("Encrypted data written to file.");
 
-    Ok(())
+    Ok((key,nonce))
 }
 
 pub fn decrypt_file<T: AsRef<Path>>(file_path: T) -> Result<(), std::io::Error>{

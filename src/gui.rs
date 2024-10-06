@@ -41,6 +41,8 @@ pub struct MyApp {
     pub decryption_status: String,
     pub selected_file: Option<std::path::PathBuf>,
     pub file_content: String,
+    pub key: String,
+    pub nonce: String,
 }
 
 impl Sandbox for MyApp {
@@ -53,6 +55,8 @@ impl Sandbox for MyApp {
             decryption_status: "".into(),
             selected_file: None,
             file_content: "".into(),
+            key:"".into(),
+            nonce:"".into(),
         }
     }
 
@@ -83,12 +87,15 @@ impl Sandbox for MyApp {
                     if let Some(algorithm) = self.selected_algorithm {
                         match algorithm {
                             Algorithms::ChaCha20 => {
-                                if let Err(e) = encrypt_file(selected_file) {
-                                    self.encryption_status =
-                                        format!("Error encrypting file: {}", e);
-                                } else {
-                                    self.encryption_status =
-                                        format!("File encrypted successfully: {:?}", selected_file);
+                                match encrypt_file(selected_file) {
+                                    Ok((key,nonce)) => {
+                                       self.key = format!("{:x?}", key);
+                                       self.nonce = format!("{:?}", nonce);
+                                       self.encryption_status = format!("File encrypted successfully");
+                                    },
+                                    Err(e) => {
+                                        self.encryption_status = format!("Error encrypting file: {}", e);
+                                    }
                                 }
                             }
                             Algorithms::AES => {
@@ -184,6 +191,25 @@ impl Sandbox for MyApp {
                     text(&self.file_content)
                         .width(Length::Fill)
                         .horizontal_alignment(Horizontal::Center),
+                    
+                        container(column![
+                            column![
+                                // status
+                                text(&self.encryption_status).width(Length::Fill),
+                                Space::with_height(10),
+                                
+                                // Display Key and Nonce
+                                text("Key:").width(Length::Shrink),
+                                text(&self.key).width(Length::Fill),
+                                Space::with_height(5),
+                                text("Nonce:").width(Length::Shrink),
+                                text(&self.nonce).width(Length::Fill),
+                                Space::with_height(20),
+                                                            ]
+                            .align_items(iced::Alignment::Center)
+                        ])
+                        .width(Length::Fill)
+                        .padding([50, 50])
                 ]
                 .align_items(iced::Alignment::Center)
             )
