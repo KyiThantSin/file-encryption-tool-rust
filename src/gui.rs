@@ -1,4 +1,4 @@
-use crate::crypto::chacha20::read_file;
+use crate::crypto::chacha20::encrypt_file;
 
 use iced::{
     alignment::{Horizontal, Vertical},
@@ -79,9 +79,22 @@ impl Sandbox for MyApp {
                 self.encryption_status = "Encryption started".into();
                 println!("Selected File Name: {:?}", self.selected_file);
                 println!("Selected Algorithm: {:?}", self.selected_algorithm.unwrap());
-                if self.selected_algorithm.unwrap() == Algorithms::ChaCha20 {
-                    if let Ok(content) = read_file("src/crypto/example.txt") {
-                        self.file_content = content; 
+                if let Some(selected_file) = &self.selected_file {
+                    if let Some(algorithm) = self.selected_algorithm {
+                        match algorithm {
+                            Algorithms::ChaCha20 => {
+                                if let Err(e) = encrypt_file(selected_file) {
+                                    self.encryption_status =
+                                        format!("Error encrypting file: {}", e);
+                                } else {
+                                    self.encryption_status =
+                                        format!("File encrypted successfully: {:?}", selected_file);
+                                }
+                            }
+                            Algorithms::AES => {
+                                // AES encryption logic
+                            }
+                        }
                     }
                 }
             }
@@ -119,10 +132,10 @@ impl Sandbox for MyApp {
                 .width(Length::Fill),
                 Space::with_height(9),
                 text("Please choose one to proceed with encryption.").width(Length::Fill),
-                text(self.selected_algorithm.map_or(
-                    "No algorithm selected".to_string(),
-                    |_| "".to_string()
-                ))
+                text(
+                    self.selected_algorithm
+                        .map_or("No algorithm selected".to_string(), |_| "".to_string())
+                )
                 .width(Length::Fill)
                 .horizontal_alignment(Horizontal::Center)
             ])
@@ -134,10 +147,9 @@ impl Sandbox for MyApp {
                         .on_press(MyAppMessage::OpenFileDialog)
                         .padding(15),
                     Space::with_height(10),
-                    self.selected_file.as_ref().map_or_else(
-                        || text("No file selected"),
-                        |_| text("")
-                    ),
+                    self.selected_file
+                        .as_ref()
+                        .map_or_else(|| text("No file selected"), |_| text("")),
                     Space::with_height(20),
                     row![
                         button(text("Encrypt"))
@@ -149,13 +161,11 @@ impl Sandbox for MyApp {
                             .padding(10),
                     ]
                     .align_items(iced::Alignment::Center),
-
                     text(&self.file_content)
-                    .width(Length::Fill)
-                    .horizontal_alignment(Horizontal::Center),
+                        .width(Length::Fill)
+                        .horizontal_alignment(Horizontal::Center),
                 ]
                 .align_items(iced::Alignment::Center)
-                
             )
             .padding(20)
             .center_x()
