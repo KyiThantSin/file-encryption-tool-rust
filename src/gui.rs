@@ -1,4 +1,4 @@
-use crate::crypto::chacha20::read_file;
+use crate::crypto::chacha20::encrypt_file;
 
 use iced::{
     alignment::{Horizontal, Vertical},
@@ -80,9 +80,10 @@ impl Sandbox for MyApp {
                 println!("Selected File Name: {:?}", self.selected_file);
                 println!("Selected Algorithm: {:?}", self.selected_algorithm.unwrap());
                 if self.selected_algorithm.unwrap() == Algorithms::ChaCha20 {
-                    if let Ok(content) = read_file("src/crypto/example.txt") {
-                        self.file_content = content; 
-                    }
+                    encrypt_file();
+                    // if let Ok(content) = read_file("src/crypto/example.txt") {
+                    //     self.file_content = content; 
+                    // }
                 }
             }
             MyAppMessage::StopDecryption => {
