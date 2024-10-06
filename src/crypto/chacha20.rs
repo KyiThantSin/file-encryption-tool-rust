@@ -51,3 +51,29 @@ pub fn encrypt_file<T: AsRef<Path>>(file_path: T) -> Result<(), std::io::Error> 
 
     Ok(())
 }
+
+pub fn decrypt_file<T: AsRef<Path>>(file_path: T) -> Result<(), std::io::Error>{
+    let sizes = Sizes::new();
+    let (key, nonce) = sizes.generate();
+
+    let mut file = File::open(file_path.as_ref())?;
+    let mut data: Vec<u8> = Vec::new();
+
+    file.read_to_end(&mut data)?;
+
+    let mut cipher = ChaCha20::new(&key.into(), &nonce.into());
+    cipher.apply_keystream(&mut data);
+
+    std::fs::create_dir_all("testings")?;
+
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open("testings/decrypted_file.txt")?;
+
+    file.write_all(&data)?;
+    println!("Decrypted data written to file.");
+
+    Ok(())
+}

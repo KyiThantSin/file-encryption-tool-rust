@@ -1,4 +1,4 @@
-use crate::crypto::chacha20::encrypt_file;
+use crate::crypto::chacha20::{encrypt_file, decrypt_file};
 
 use iced::{
     alignment::{Horizontal, Vertical},
@@ -99,7 +99,27 @@ impl Sandbox for MyApp {
                 }
             }
             MyAppMessage::StopDecryption => {
-                self.decryption_status = "Decryption stopped".into();
+                self.encryption_status = "Decrypted started".into();
+                println!("Selected File Name: {:?}", self.selected_file);
+                println!("Selected Algorithm: {:?}", self.selected_algorithm.unwrap());
+                if let Some(selected_file) = &self.selected_file {
+                    if let Some(algorithm) = self.selected_algorithm {
+                        match algorithm {
+                            Algorithms::ChaCha20 => {
+                                if let Err(e) = decrypt_file(selected_file) {
+                                    self.encryption_status =
+                                        format!("Error decrypting file: {}", e);
+                                } else {
+                                    self.encryption_status =
+                                        format!("File decrypted successfully: {:?}", selected_file);
+                                }
+                            }
+                            Algorithms::AES => {
+                                // AES encryption logic
+                            }
+                        }
+                    }
+                }
             }
         }
     }
