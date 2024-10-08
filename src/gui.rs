@@ -55,8 +55,8 @@ impl Sandbox for MyApp {
             decryption_status: "".into(),
             selected_file: None,
             file_content: "".into(),
-            key:"".into(),
-            nonce:"".into(),
+            key: "".into(),
+            nonce: "".into(),
         }
     }
 
@@ -81,20 +81,20 @@ impl Sandbox for MyApp {
             }
             MyAppMessage::StartEncryption => {
                 self.encryption_status = "Encryption started".into();
-                println!("Selected File Name: {:?}", self.selected_file);
-                println!("Selected Algorithm: {:?}", self.selected_algorithm.unwrap());
                 if let Some(selected_file) = &self.selected_file {
                     if let Some(algorithm) = self.selected_algorithm {
                         match algorithm {
                             Algorithms::ChaCha20 => {
                                 match encrypt_file(selected_file) {
-                                    Ok((key,nonce)) => {
-                                       self.key = format!("{:x?}", key);
-                                       self.nonce = format!("{:?}", nonce);
-                                       self.encryption_status = format!("File encrypted successfully");
-                                    },
+                                    Ok((key, nonce)) => {
+                                        self.key = format!("{:x?}", key);
+                                        self.nonce = format!("{:?}", nonce);
+                                        self.encryption_status =
+                                            format!("File encrypted successfully");
+                                    }
                                     Err(e) => {
-                                        self.encryption_status = format!("Error encrypting file: {}", e);
+                                        self.encryption_status =
+                                            format!("Error encrypting file: {}", e);
                                     }
                                 }
                             }
@@ -107,8 +107,6 @@ impl Sandbox for MyApp {
             }
             MyAppMessage::StopDecryption => {
                 self.encryption_status = "Decrypted started".into();
-                println!("Selected File Name: {:?}", self.selected_file);
-                println!("Selected Algorithm: {:?}", self.selected_algorithm.unwrap());
                 if let Some(selected_file) = &self.selected_file {
                     if let Some(algorithm) = self.selected_algorithm {
                         match algorithm {
@@ -117,12 +115,14 @@ impl Sandbox for MyApp {
                                     self.encryption_status =
                                         format!("Error decrypting file: {}", e);
                                 } else {
-                                    self.encryption_status =
-                                        format!("File decrypted successfully: {:?}", selected_file);
+                                    self.encryption_status = format!(
+                                        "File decrypted successfully: {:?}",
+                                        selected_file
+                                    );
                                 }
                             }
                             Algorithms::AES => {
-                                // AES encryption logic
+                                // AES decryption logic
                             }
                         }
                     }
@@ -143,6 +143,7 @@ impl Sandbox for MyApp {
             ])
             .padding([50, 50])
             .width(Length::Fill),
+            
             container(column![
                 row![
                     text("Encora supports two encryption algorithms: ChaCha20 and AES.")
@@ -168,6 +169,7 @@ impl Sandbox for MyApp {
             ])
             .padding([10, 50])
             .width(Length::Fill),
+            
             container(
                 column![
                     button(text("Select a file..."))
@@ -192,24 +194,45 @@ impl Sandbox for MyApp {
                         .width(Length::Fill)
                         .horizontal_alignment(Horizontal::Center),
                     
+                    // the encryption details if encryption was successful
+                    if self.encryption_status == "File encrypted successfully" {
                         container(column![
                             column![
-                                // status
-                                text(&self.encryption_status).width(Length::Fill),
+                                text(&self.encryption_status)
+                                    .width(Length::Fill)
+                                    .horizontal_alignment(Horizontal::Center),
+                                Space::with_height(20),
+    
+                                // Display Key and Nonce
+                                text("Encryption Details"),
                                 Space::with_height(10),
                                 
-                                // Display Key and Nonce
-                                text("Key:").width(Length::Shrink),
-                                text(&self.key).width(Length::Fill),
-                                Space::with_height(5),
-                                text("Nonce:").width(Length::Shrink),
-                                text(&self.nonce).width(Length::Fill),
+                                row![
+                                    text("Key:").width(Length::Shrink),
+                                    text(&self.key)
+                                        .width(Length::Fill)
+                                        .horizontal_alignment(Horizontal::Center),
+                                ]
+                                .align_items(iced::Alignment::Center),
+                                Space::with_height(10),
+                                row![
+                                    text("Nonce:").width(Length::Shrink),
+                                    text(&self.nonce)
+                                        .width(Length::Fill)
+                                        .horizontal_alignment(Horizontal::Center)
+                                ],
                                 Space::with_height(20),
-                                                            ]
-                            .align_items(iced::Alignment::Center)
+                            ]
+                            .align_items(iced::Alignment::Center),
+                            text("Please save the key and nonce somewhere else in order to decrypt the file"),
                         ])
                         .width(Length::Fill)
                         .padding([50, 50])
+                    } else {
+                        container(
+                            column![]
+                        )
+                    }
                 ]
                 .align_items(iced::Alignment::Center)
             )
@@ -219,5 +242,5 @@ impl Sandbox for MyApp {
             .height(Length::Fill),
         ]
         .into()
-    }
+    }    
 }
