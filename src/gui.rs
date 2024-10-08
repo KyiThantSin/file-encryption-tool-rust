@@ -143,6 +143,7 @@ impl Sandbox for MyApp {
             ])
             .padding([50, 50])
             .width(Length::Fill),
+            
             container(column![
                 row![
                     text("Encora supports two encryption algorithms: ChaCha20 and AES.")
@@ -168,6 +169,7 @@ impl Sandbox for MyApp {
             ])
             .padding([10, 50])
             .width(Length::Fill),
+            
             container(
                 column![
                     button(text("Select a file..."))
@@ -192,38 +194,45 @@ impl Sandbox for MyApp {
                         .width(Length::Fill)
                         .horizontal_alignment(Horizontal::Center),
                     
-                    container(column![
-                        column![
-                            text(&self.encryption_status)
-                                .width(Length::Fill)
-                                .horizontal_alignment(Horizontal::Center),
-                            Space::with_height(20),
-
-                            // Display Key and Nonce
-                            text("Encryption Details"),
-                            Space::with_height(10),
-                            
-                            row![
-                                text("Key:").width(Length::Shrink),
-                                text(&self.key)
+                    // the encryption details if encryption was successful
+                    if self.encryption_status == "File encrypted successfully" {
+                        container(column![
+                            column![
+                                text(&self.encryption_status)
                                     .width(Length::Fill)
                                     .horizontal_alignment(Horizontal::Center),
+                                Space::with_height(20),
+    
+                                // Display Key and Nonce
+                                text("Encryption Details"),
+                                Space::with_height(10),
+                                
+                                row![
+                                    text("Key:").width(Length::Shrink),
+                                    text(&self.key)
+                                        .width(Length::Fill)
+                                        .horizontal_alignment(Horizontal::Center),
+                                ]
+                                .align_items(iced::Alignment::Center),
+                                Space::with_height(10),
+                                row![
+                                    text("Nonce:").width(Length::Shrink),
+                                    text(&self.nonce)
+                                        .width(Length::Fill)
+                                        .horizontal_alignment(Horizontal::Center)
+                                ],
+                                Space::with_height(20),
                             ]
                             .align_items(iced::Alignment::Center),
-                            Space::with_height(10),
-                            row![
-                                text("Nonce:").width(Length::Shrink),
-                                text(&self.nonce)
-                                    .width(Length::Fill)
-                                    .horizontal_alignment(Horizontal::Center)
-                            ],
-                            Space::with_height(20),
-                        ]
-                        .align_items(iced::Alignment::Center),
-                        text("Please save the key and nonce in somewhere else in order to do decryption"),
-                    ])
-                    .width(Length::Fill)
-                    .padding([50, 50])
+                            text("Please save the key and nonce somewhere else in order to decrypt the file"),
+                        ])
+                        .width(Length::Fill)
+                        .padding([50, 50])
+                    } else {
+                        container(
+                            column![]
+                        )
+                    }
                 ]
                 .align_items(iced::Alignment::Center)
             )
@@ -233,5 +242,5 @@ impl Sandbox for MyApp {
             .height(Length::Fill),
         ]
         .into()
-    }
+    }    
 }
