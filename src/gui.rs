@@ -119,7 +119,7 @@ impl Sandbox for MyApp {
             MyAppMessage::Decrypt => {
                 // Start decryption when both key and nonce are provided
                 if self.key.is_empty() || self.nonce.is_empty() {
-                    self.decryption_status = "Please provide both key and nonce".into();
+                    self.decryption_status = "Please provide both key and nonce to decrypt".into();
                 } else {
                     if let Some(selected_file) = &self.selected_file {
                         if let Some(algorithm) = self.selected_algorithm {
@@ -194,42 +194,84 @@ impl Sandbox for MyApp {
                         .as_ref()
                         .map_or_else(|| text("No file selected"), |_| text("")),
                     Space::with_height(20),
-                    row![
-                        button(text("Encrypt"))
-                            .on_press(MyAppMessage::StartEncryption)
-                            .padding(10),
-                        Space::with_width(20),
-                        button(text("Decrypt"))
-                            .on_press(MyAppMessage::StartDecryption)
-                            .padding(10),
-                    ]
-                    .align_items(iced::Alignment::Center),
-                    text(&self.file_content)
-                        .width(Length::Fill)
-                        .horizontal_alignment(Horizontal::Center),
+                    
+                    // Only show the Encrypt and Decrypt buttons if key and nonce input fields are not shown
+                    if !self.show_key_nonce_input {
+                        row![
+                            button(text("Encrypt"))
+                                .on_press(MyAppMessage::StartEncryption)
+                                .padding(10),
+                            Space::with_width(20),
+                            button(text("Decrypt"))
+                                .on_press(MyAppMessage::StartDecryption)
+                                .padding(10),
+                        ]
+                        .align_items(iced::Alignment::Center)
+                    } else {
+                        row![]
+                    },
+    
+                        if self.encryption_status == "File encrypted successfully" {
+                            container(column![
+                                column![
+                                    Space::with_height(20),
+            
+                                    // Display Key and Nonce
+                                    text("Encryption Details"),
+                                    Space::with_height(10),
+                                        
+                                    row![
+                                        text("Key:").width(Length::Shrink),
+                                        text(&self.key)
+                                            .width(Length::Fill)
+                                            .horizontal_alignment(Horizontal::Center),
+                                    ]
+                                    .align_items(iced::Alignment::Center),
+                                    Space::with_height(10),
+                                    row![
+                                        text("Nonce:").width(Length::Shrink),
+                                        text(&self.nonce)
+                                            .width(Length::Fill)
+                                            .horizontal_alignment(Horizontal::Center)
+                                    ],
+                                    Space::with_height(20),
+                                ]
+                                .align_items(iced::Alignment::Center),
+                                text("Please save the key and nonce somewhere safe in order to decrypt the file"),
+                            ])
+                            .width(Length::Fill)
+                            .padding([50, 50])
+                        } else {
+                            container(column![])
+                        },
+    
                     // Show key and nonce input fields when decrypt button is clicked
                     if self.show_key_nonce_input {
                         column![
+                            text("Key:").width(Length::Shrink).horizontal_alignment(Horizontal::Left),
+                            Space::with_height(10),
                             text_input("Enter Key", &self.key)
                                 .on_input(MyAppMessage::KeyInputChanged)
                                 .padding(10)
                                 .width(Length::Fill),
-                            Space::with_height(20), 
+                            Space::with_height(20),
+                            text("Nonce:").width(Length::Shrink).horizontal_alignment(Horizontal::Left),
+                            Space::with_height(10),
                             text_input("Enter Nonce", &self.nonce)
                                 .on_input(MyAppMessage::NonceInputChanged)
                                 .padding(10)
                                 .width(Length::Fill),
-                            Space::with_height(20), 
+                            Space::with_height(20),
                             button(text("Decrypt Now"))
-                            .on_press(MyAppMessage::Decrypt)
-                            .padding(10)
+                                .on_press(MyAppMessage::Decrypt)
+                                .padding(10)
                         ]
                         .padding(20)
-                        .align_items(iced::Alignment::Center)
                         .into()
                     } else {
                         column![]
                     },
+    
                     // Show encryption or decryption status
                     text(&self.encryption_status)
                         .width(Length::Fill)
@@ -246,5 +288,5 @@ impl Sandbox for MyApp {
             .height(Length::Fill),
         ]
         .into()
-    }
+    }    
 }
