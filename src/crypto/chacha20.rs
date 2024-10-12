@@ -65,16 +65,27 @@ pub fn encrypt_file<T: AsRef<Path>>(file_path: T) -> Result<(String, String), st
     Ok((key_hex, nonce_hex))
 }
 
-pub fn decrypt_file<T: AsRef<Path>>(file_path: T) -> Result<(), std::io::Error>{
-    let sizes = Sizes::new();
-    let (key, nonce) = sizes.generate();
+pub fn decrypt_file<T: AsRef<Path>>(file_path: T, key_hex: &str, nonce_hex: &str) -> Result<(), io::Error> {
+    // Decode the hex strings back to bytes
+    let key = hex::decode(key_hex).map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
+    let nonce = hex::decode(nonce_hex).map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
+     println!("{:?}", &key_hex);
+     println!("{:?}", &nonce_hex);
+     println!("running");
+    // Verify key and nonce lengths
+    if key.len() != 32 || nonce.len() != 32 {
+        return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid key or nonce length"));
+    }
+
+    // Use only the first 12 bytes of the nonce (as ChaCha20 expects a 12-byte nonce)
+    let nonce = &nonce[..12];
 
     let mut file = File::open(file_path.as_ref())?;
     let mut data: Vec<u8> = Vec::new();
 
     file.read_to_end(&mut data)?;
 
-    let mut cipher = ChaCha20::new(&key.into(), &nonce.into());
+    let mut cipher = ChaCha20::new(key.as_slice().into(), nonce.into());
     cipher.apply_keystream(&mut data);
 
     std::fs::create_dir_all("testings")?;

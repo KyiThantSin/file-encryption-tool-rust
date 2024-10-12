@@ -125,7 +125,7 @@ impl Sandbox for MyApp {
                         if let Some(algorithm) = self.selected_algorithm {
                             match algorithm {
                                 Algorithms::ChaCha20 => {
-                                    if let Err(e) = decrypt_file(selected_file) {
+                                    if let Err(e) = decrypt_file(selected_file, &self.key, &self.nonce) {
                                         self.decryption_status =
                                             format!("Error decrypting file: {}", e);
                                     } else {
