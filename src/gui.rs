@@ -49,6 +49,7 @@ pub struct MyApp {
     pub key: String,
     pub nonce: String,
     pub show_key_nonce_input: bool,
+    pub copy_status: String,
 }
 
 impl Sandbox for MyApp {
@@ -59,6 +60,7 @@ impl Sandbox for MyApp {
             selected_algorithm: None,
             encryption_status: "".into(),
             decryption_status: "".into(),
+            copy_status:"".into(),
             selected_file: None,
             key: "".into(),
             nonce: "".into(),
@@ -113,12 +115,12 @@ impl Sandbox for MyApp {
             MyAppMessage::CopyKey => {
                 let mut clipboard = ClipboardContext::new().unwrap();
                 clipboard.set_contents(self.key.clone()).unwrap();
-                self.encryption_status = "Key copied to clipboard!".into();
+                self.copy_status = "Key copied to clipboard!".into();
             }
             MyAppMessage::CopyNonce => {
                 let mut clipboard = ClipboardContext::new().unwrap();
                 clipboard.set_contents(self.nonce.clone()).unwrap();
-                self.encryption_status = "Nonce copied to clipboard!".into();
+                self.copy_status = "Nonce copied to clipboard!".into();
             }
             MyAppMessage::BackToMain => {
                 // show the main page
@@ -313,7 +315,10 @@ impl Sandbox for MyApp {
                         .horizontal_alignment(Horizontal::Center),
                     text(&self.decryption_status)
                         .width(Length::Fill)
-                        .horizontal_alignment(Horizontal::Center)
+                        .horizontal_alignment(Horizontal::Center),
+                    text(&self.copy_status)
+                        .width(Length::Fill)
+                        .horizontal_alignment(Horizontal::Center),
                 ]
                 .align_items(iced::Alignment::Center)
             )
