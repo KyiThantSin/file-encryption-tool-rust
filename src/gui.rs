@@ -5,6 +5,7 @@ use iced::{
     Element, Length, Sandbox,
 };
 use rfd::FileDialog;
+use copypasta::{ClipboardContext, ClipboardProvider};
 
 #[derive(Debug, Clone)]
 pub enum MyAppMessage {
@@ -16,6 +17,9 @@ pub enum MyAppMessage {
     KeyInputChanged(String),
     NonceInputChanged(String),
     Decrypt,
+    BackToMain,
+    CopyKey,
+    CopyNonce
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,10 +46,10 @@ pub struct MyApp {
     pub encryption_status: String,
     pub decryption_status: String,
     pub selected_file: Option<std::path::PathBuf>,
-    pub file_content: String,
     pub key: String,
     pub nonce: String,
     pub show_key_nonce_input: bool,
+    pub copy_status: String,
 }
 
 impl Sandbox for MyApp {
@@ -56,8 +60,8 @@ impl Sandbox for MyApp {
             selected_algorithm: None,
             encryption_status: "".into(),
             decryption_status: "".into(),
+            copy_status:"".into(),
             selected_file: None,
-            file_content: "".into(),
             key: "".into(),
             nonce: "".into(),
             show_key_nonce_input: false,
@@ -75,6 +79,8 @@ impl Sandbox for MyApp {
             }
             MyAppMessage::FileSelected(file_path) => {
                 self.selected_file = file_path;
+                self.encryption_status = String::new();
+                self.decryption_status = String::new();
             }
             MyAppMessage::OpenFileDialog => {
                 if let Some(path) = FileDialog::new().pick_file() {
@@ -106,9 +112,32 @@ impl Sandbox for MyApp {
                     }
                 }
             }
+            MyAppMessage::CopyKey => {
+                let mut clipboard = ClipboardContext::new().unwrap();
+                clipboard.set_contents(self.key.clone()).unwrap();
+                self.copy_status = "Key copied to clipboard!".into();
+            }
+            MyAppMessage::CopyNonce => {
+                let mut clipboard = ClipboardContext::new().unwrap();
+                clipboard.set_contents(self.nonce.clone()).unwrap();
+                self.copy_status = "Nonce copied to clipboard!".into();
+            }
+            MyAppMessage::BackToMain => {
+                // show the main page
+                self.show_key_nonce_input = false;
+                self.encryption_status = String::new();
+                self.decryption_status = String::new();
+                self.key = String::new();
+                self.nonce = String::new();
+                self.selected_file = None;
+            }
             MyAppMessage::StartDecryption => {
                 // Show input fields for key and nonce
                 self.show_key_nonce_input = true;
+                self.encryption_status = String::new();
+                self.key = String::new();
+                self.nonce = String::new();
+                self.selected_file = None;
             }
             MyAppMessage::KeyInputChanged(key) => {
                 self.key = key;
@@ -224,7 +253,8 @@ impl Sandbox for MyApp {
                                         text("Key:").width(Length::Shrink),
                                         text(&self.key)
                                             .width(Length::Fill)
-                                            .horizontal_alignment(Horizontal::Center),
+                                            .horizontal_alignment(iced::alignment::Horizontal::Center),
+                                        button("Copy").on_press(MyAppMessage::CopyKey) 
                                     ]
                                     .align_items(iced::Alignment::Center),
                                     Space::with_height(10),
@@ -232,7 +262,8 @@ impl Sandbox for MyApp {
                                         text("Nonce:").width(Length::Shrink),
                                         text(&self.nonce)
                                             .width(Length::Fill)
-                                            .horizontal_alignment(Horizontal::Center)
+                                            .horizontal_alignment(iced::alignment::Horizontal::Center),
+                                        button("Copy").on_press(MyAppMessage::CopyNonce) 
                                     ],
                                     Space::with_height(20),
                                 ]
@@ -262,12 +293,18 @@ impl Sandbox for MyApp {
                                 .padding(10)
                                 .width(Length::Fill),
                             Space::with_height(20),
-                            button(text("Decrypt Now"))
-                                .on_press(MyAppMessage::Decrypt)
-                                .padding(10)
+                            row![
+                                button(text("Decrypt Now"))
+                                    .on_press(MyAppMessage::Decrypt)
+                                    .padding(10),
+                                Space::with_width(20),
+                                button(text("Back"))
+                                    .on_press(MyAppMessage::BackToMain)
+                                    .padding(10),
+                            ]
+                            .spacing(10)
+                            .align_items(iced::Alignment::Center)
                         ]
-                        .padding(20)
-                        .into()
                     } else {
                         column![]
                     },
@@ -278,7 +315,10 @@ impl Sandbox for MyApp {
                         .horizontal_alignment(Horizontal::Center),
                     text(&self.decryption_status)
                         .width(Length::Fill)
-                        .horizontal_alignment(Horizontal::Center)
+                        .horizontal_alignment(Horizontal::Center),
+                    text(&self.copy_status)
+                        .width(Length::Fill)
+                        .horizontal_alignment(Horizontal::Center),
                 ]
                 .align_items(iced::Alignment::Center)
             )
