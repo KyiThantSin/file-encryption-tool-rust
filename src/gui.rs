@@ -42,7 +42,6 @@ pub struct MyApp {
     pub encryption_status: String,
     pub decryption_status: String,
     pub selected_file: Option<std::path::PathBuf>,
-    pub file_content: String,
     pub key: String,
     pub nonce: String,
     pub show_key_nonce_input: bool,
@@ -57,7 +56,6 @@ impl Sandbox for MyApp {
             encryption_status: "".into(),
             decryption_status: "".into(),
             selected_file: None,
-            file_content: "".into(),
             key: "".into(),
             nonce: "".into(),
             show_key_nonce_input: false,
@@ -75,6 +73,8 @@ impl Sandbox for MyApp {
             }
             MyAppMessage::FileSelected(file_path) => {
                 self.selected_file = file_path;
+                self.encryption_status = String::new();
+                self.decryption_status = String::new();
             }
             MyAppMessage::OpenFileDialog => {
                 if let Some(path) = FileDialog::new().pick_file() {
@@ -109,6 +109,10 @@ impl Sandbox for MyApp {
             MyAppMessage::StartDecryption => {
                 // Show input fields for key and nonce
                 self.show_key_nonce_input = true;
+                self.encryption_status = String::new();
+                self.key = String::new();
+                self.nonce = String::new();
+                self.selected_file = None;
             }
             MyAppMessage::KeyInputChanged(key) => {
                 self.key = key;
