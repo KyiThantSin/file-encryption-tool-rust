@@ -5,6 +5,7 @@ use iced::{
     Element, Length, Sandbox,
 };
 use rfd::FileDialog;
+use copypasta::{ClipboardContext, ClipboardProvider};
 
 #[derive(Debug, Clone)]
 pub enum MyAppMessage {
@@ -16,7 +17,9 @@ pub enum MyAppMessage {
     KeyInputChanged(String),
     NonceInputChanged(String),
     Decrypt,
-    BackToMain
+    BackToMain,
+    CopyKey,
+    CopyNonce
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -106,6 +109,16 @@ impl Sandbox for MyApp {
                         }
                     }
                 }
+            }
+            MyAppMessage::CopyKey => {
+                let mut clipboard = ClipboardContext::new().unwrap();
+                clipboard.set_contents(self.key.clone()).unwrap();
+                self.encryption_status = "Key copied to clipboard!".into();
+            }
+            MyAppMessage::CopyNonce => {
+                let mut clipboard = ClipboardContext::new().unwrap();
+                clipboard.set_contents(self.nonce.clone()).unwrap();
+                self.encryption_status = "Nonce copied to clipboard!".into();
             }
             MyAppMessage::BackToMain => {
                 // show the main page
@@ -238,7 +251,8 @@ impl Sandbox for MyApp {
                                         text("Key:").width(Length::Shrink),
                                         text(&self.key)
                                             .width(Length::Fill)
-                                            .horizontal_alignment(Horizontal::Center),
+                                            .horizontal_alignment(iced::alignment::Horizontal::Center),
+                                        button("Copy").on_press(MyAppMessage::CopyKey) 
                                     ]
                                     .align_items(iced::Alignment::Center),
                                     Space::with_height(10),
@@ -246,7 +260,8 @@ impl Sandbox for MyApp {
                                         text("Nonce:").width(Length::Shrink),
                                         text(&self.nonce)
                                             .width(Length::Fill)
-                                            .horizontal_alignment(Horizontal::Center)
+                                            .horizontal_alignment(iced::alignment::Horizontal::Center),
+                                        button("Copy").on_press(MyAppMessage::CopyNonce) 
                                     ],
                                     Space::with_height(20),
                                 ]
