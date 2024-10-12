@@ -4,64 +4,51 @@ use rand::Rng;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::path::Path;
+use hex;
 
-struct Sizes;
+pub fn encrypt_file<T: AsRef<Path>>(file_path: T) -> Result<(String, String), io::Error> {
+    let mut key = [0u8; 32];
+    let mut nonce = [0u8; 12];
+    rand::thread_rng().fill(&mut key);
+    rand::thread_rng().fill(&mut nonce);
 
-impl Sizes {
-    fn new() -> Self {
-        Self
-    }
-
-    // Random key and nonce
-    fn generate(&self) -> ([u8; 32], [u8; 12]) {
-        let mut key = [0u8; 32];
-        let mut nonce = [0u8; 12];
-
-        rand::thread_rng().fill(&mut key);
-        rand::thread_rng().fill(&mut nonce);
-        (key, nonce)
-    }
-}
-
-pub fn encrypt_file<T: AsRef<Path>>(file_path: T) -> Result<([u8; 32], [u8; 12]), std::io::Error> {
-    let sizes = Sizes::new();
-    let (key, nonce) = sizes.generate();
-
-    // Open 
     let mut file = File::open(file_path.as_ref())?;
-    let mut data = Vec::new(); // read into a Vec<u8>
-
+    let mut data = Vec::new();
     file.read_to_end(&mut data)?;
 
-    // ChaCha20 cipher instance
     let mut cipher = ChaCha20::new(&key.into(), &nonce.into());
     cipher.apply_keystream(&mut data);
-    // println!("Encrypted Data: {:?}", data);
-    
-    std::fs::create_dir_all("testings")?; // create if it does not exist
+
+    std::fs::create_dir_all("testings")?;
 
     let mut file = OpenOptions::new()
         .write(true)
         .create(true)
-        .truncate(true) 
+        .truncate(true)
         .open("testings/encrypted_file.txt")?;
 
     file.write_all(&data)?;
     println!("Encrypted data written to file.");
 
-    Ok((key,nonce))
+    let key_hex = hex::encode(key);
+    let nonce_hex = hex::encode(nonce);
+
+    Ok((key_hex, nonce_hex))
 }
 
-pub fn decrypt_file<T: AsRef<Path>>(file_path: T) -> Result<(), std::io::Error>{
-    let sizes = Sizes::new();
-    let (key, nonce) = sizes.generate();
+pub fn decrypt_file<T: AsRef<Path>>(file_path: T, key_hex: &str, nonce_hex: &str) -> Result<(), io::Error> {
+    let key = hex::decode(key_hex).map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
+    let nonce = hex::decode(nonce_hex).map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
+
+    if key.len() != 32 || nonce.len() != 12 {
+        return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid key or nonce length"));
+    }
 
     let mut file = File::open(file_path.as_ref())?;
     let mut data: Vec<u8> = Vec::new();
-
     file.read_to_end(&mut data)?;
 
-    let mut cipher = ChaCha20::new(&key.into(), &nonce.into());
+    let mut cipher = ChaCha20::new(key.as_slice().into(), nonce.as_slice().into());
     cipher.apply_keystream(&mut data);
 
     std::fs::create_dir_all("testings")?;
