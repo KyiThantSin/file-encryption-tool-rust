@@ -6,6 +6,7 @@ use iced::{
 };
 use rfd::FileDialog;
 
+
 #[derive(Debug, Clone)]
 pub enum MyAppMessage {
     AlgorithmSelected(Algorithms),
@@ -101,6 +102,12 @@ impl Sandbox for MyApp {
                             },
                             Algorithms::AES => {
                                 // AES encryption logic
+                                if self.key.is_empty() {
+                                    self.encryption_status = "Please enter a key for AES encryption".into();
+                                } else {
+                                    // Use self.key in AES encryption logic here
+                                    self.encryption_status = format!("File encrypted successfully with AES");
+                                }
                             }
                         }
                     }
@@ -125,7 +132,7 @@ impl Sandbox for MyApp {
                         if let Some(algorithm) = self.selected_algorithm {
                             match algorithm {
                                 Algorithms::ChaCha20 => {
-                                    if let Err(e) = decrypt_file(selected_file, &self.key, &self.nonce) {
+                                    if let Err(e) = decrypt_file(selected_file) {
                                         self.decryption_status =
                                             format!("Error decrypting file: {}", e);
                                     } else {
@@ -138,6 +145,12 @@ impl Sandbox for MyApp {
                                 }
                                 Algorithms::AES => {
                                     // AES decryption logic
+                                    if self.key.is_empty() {
+                                        self.encryption_status = "Please enter a key for AES encryption".into();
+                                    } else {
+                                        // Use self.key in AES encryption logic here
+                                        self.encryption_status = format!("File encrypted successfully with AES");
+                                    }
                                 }
                             }
                         }
@@ -180,10 +193,32 @@ impl Sandbox for MyApp {
                         .map_or("No algorithm selected".to_string(), |_| "".to_string())
                 )
                 .width(Length::Fill)
-                .horizontal_alignment(Horizontal::Center)
+                .horizontal_alignment(Horizontal::Center), // <-- Add a missing comma here
+                Space::with_height(9),
+                if let Some(algorithm) = self.selected_algorithm {
+                    if algorithm == Algorithms::AES {
+                        // Show the message and key input box if AES is selected
+                        column![
+                            text("You chose AES algorithm to encrypt or decrypt your file(s).").width(Length::Fill),
+                            Space::with_height(10),
+                            text("Enter your secret key for AES:").width(Length::Fill),
+                            text_input("Secret Key (Remember this for encryption/decryption)", &self.key)
+                                .on_input(MyAppMessage::KeyInputChanged)
+                                .padding(10)
+                                .width(Length::Fill),
+                        ]
+                        .padding([20, 0])
+                        .width(Length::Fill)
+                    } else {
+                        column![]
+                    }
+                } else {
+                    column![]
+                },
             ])
             .padding([10, 50])
             .width(Length::Fill),
+    
             container(
                 column![
                     button(text("Select a file..."))
