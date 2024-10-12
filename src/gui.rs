@@ -16,6 +16,7 @@ pub enum MyAppMessage {
     KeyInputChanged(String),
     NonceInputChanged(String),
     Decrypt,
+    BackToMain
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -105,6 +106,15 @@ impl Sandbox for MyApp {
                         }
                     }
                 }
+            }
+            MyAppMessage::BackToMain => {
+                // show the main page
+                self.show_key_nonce_input = false;
+                self.encryption_status = String::new();
+                self.decryption_status = String::new();
+                self.key = String::new();
+                self.nonce = String::new();
+                self.selected_file = None;
             }
             MyAppMessage::StartDecryption => {
                 // Show input fields for key and nonce
@@ -266,12 +276,18 @@ impl Sandbox for MyApp {
                                 .padding(10)
                                 .width(Length::Fill),
                             Space::with_height(20),
-                            button(text("Decrypt Now"))
-                                .on_press(MyAppMessage::Decrypt)
-                                .padding(10)
+                            row![
+                                button(text("Decrypt Now"))
+                                    .on_press(MyAppMessage::Decrypt)
+                                    .padding(10),
+                                Space::with_width(20),
+                                button(text("Back"))
+                                    .on_press(MyAppMessage::BackToMain)
+                                    .padding(10),
+                            ]
+                            .spacing(10)
+                            .align_items(iced::Alignment::Center)
                         ]
-                        .padding(20)
-                        .into()
                     } else {
                         column![]
                     },
