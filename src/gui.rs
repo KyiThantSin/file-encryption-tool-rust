@@ -2,7 +2,7 @@ use crate::crypto::chacha20::{decrypt_file, encrypt_file};
 use iced::{
     alignment::{Horizontal, Vertical},
     widget::{button, column, container, pick_list, row, text, text_input, Space},
-    Element, Length, Sandbox,
+    Element, Length, Sandbox, theme
 };
 use rfd::FileDialog;
 use copypasta::{ClipboardContext, ClipboardProvider};
@@ -210,7 +210,7 @@ impl Sandbox for MyApp {
                     .width(Length::Shrink),
                 ]
                 .width(Length::Fill),
-                Space::with_height(9),
+                Space::with_height(20),
                 text("Please choose one to proceed with encryption.").width(Length::Fill),
                 text(
                     self.selected_algorithm
@@ -221,16 +221,22 @@ impl Sandbox for MyApp {
             ])
             .padding([10, 50])
             .width(Length::Fill),
+            Space::with_height(30),
             container(
                 column![
-                    button(text("Select a file..."))
-                        .on_press(MyAppMessage::OpenFileDialog)
-                        .padding(15),
-                    Space::with_height(10),
-                    self.selected_file
-                        .as_ref()
-                        .map_or_else(|| text("No file selected"), |_| text("")),
-                    Space::with_height(20),
+                    if let Some(selected_file) = &self.selected_file {
+                        button(text(format!("Selected file: {}", selected_file.display())))
+                            .on_press(MyAppMessage::OpenFileDialog)
+                            .padding(15)
+                            .style(theme::Button::Secondary)
+                    } else {
+                        button(text("Select a file..."))
+                            .on_press(MyAppMessage::OpenFileDialog)
+                            .padding(15)
+                            .width(Length::Fixed(900.0))
+                            .style(theme::Button::Secondary)
+                    },
+                    Space::with_height(30),
                     
                     // Only show the Encrypt and Decrypt buttons if key and nonce input fields are not shown
                     if !self.show_key_nonce_input {
@@ -262,7 +268,7 @@ impl Sandbox for MyApp {
                                         text(&self.key)
                                             .width(Length::Fill)
                                             .horizontal_alignment(iced::alignment::Horizontal::Center),
-                                        button("Copy").on_press(MyAppMessage::CopyKey) 
+                                        button("Copy").on_press(MyAppMessage::CopyKey).padding(10) 
                                     ]
                                     .align_items(iced::Alignment::Center),
                                     Space::with_height(10),
@@ -271,7 +277,7 @@ impl Sandbox for MyApp {
                                         text(&self.nonce)
                                             .width(Length::Fill)
                                             .horizontal_alignment(iced::alignment::Horizontal::Center),
-                                        button("Copy").on_press(MyAppMessage::CopyNonce) 
+                                        button("Copy").on_press(MyAppMessage::CopyNonce).padding(10)
                                     ],
                                     Space::with_height(20),
                                 ]
@@ -312,7 +318,8 @@ impl Sandbox for MyApp {
                             ]
                             .spacing(10)
                             .align_items(iced::Alignment::Center)
-                        ]
+                        ].padding([50, 50])
+
                     } else {
                         column![]
                     },
