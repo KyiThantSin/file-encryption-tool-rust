@@ -182,7 +182,9 @@ impl Sandbox for MyApp {
                 text("Encora")
                     .width(Length::Fill)
                     .horizontal_alignment(Horizontal::Left)
-                    .vertical_alignment(Vertical::Center),
+                    .vertical_alignment(Vertical::Center)
+                    .size(25)
+                    .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0,0.5,0.8))),
                 Space::with_height(10),
                 text("Your Trusted File Encryption Tool").width(Length::Fill)
             ])
