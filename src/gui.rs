@@ -2,7 +2,7 @@ use crate::crypto::chacha20::{decrypt_file, encrypt_file};
 use iced::{
     alignment::{Horizontal, Vertical},
     widget::{button, column, container, pick_list, row, text, text_input, Space},
-    Element, Length, Sandbox,
+    Element, Length, Sandbox, theme
 };
 use rfd::FileDialog;
 use copypasta::{ClipboardContext, ClipboardProvider};
@@ -130,6 +130,7 @@ impl Sandbox for MyApp {
                 self.key = String::new();
                 self.nonce = String::new();
                 self.selected_file = None;
+                self.copy_status = String::new();
             }
             MyAppMessage::StartDecryption => {
                 // Show input fields for key and nonce
@@ -138,6 +139,7 @@ impl Sandbox for MyApp {
                 self.key = String::new();
                 self.nonce = String::new();
                 self.selected_file = None;
+                self.copy_status = String::new();
             }
             MyAppMessage::KeyInputChanged(key) => {
                 self.key = key;
@@ -175,6 +177,10 @@ impl Sandbox for MyApp {
             }
         }
     }
+    
+    fn theme(&self) -> iced::Theme {
+        iced::Theme::Dark
+    }
 
     fn view(&self) -> Element<Self::Message> {
         column![
@@ -182,7 +188,9 @@ impl Sandbox for MyApp {
                 text("Encora")
                     .width(Length::Fill)
                     .horizontal_alignment(Horizontal::Left)
-                    .vertical_alignment(Vertical::Center),
+                    .vertical_alignment(Vertical::Center)
+                    .size(28)
+                    .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0,0.5,0.9))),
                 Space::with_height(10),
                 text("Your Trusted File Encryption Tool").width(Length::Fill)
             ])
@@ -202,7 +210,7 @@ impl Sandbox for MyApp {
                     .width(Length::Shrink),
                 ]
                 .width(Length::Fill),
-                Space::with_height(9),
+                Space::with_height(20),
                 text("Please choose one to proceed with encryption.").width(Length::Fill),
                 text(
                     self.selected_algorithm
@@ -213,16 +221,22 @@ impl Sandbox for MyApp {
             ])
             .padding([10, 50])
             .width(Length::Fill),
+            Space::with_height(30),
             container(
                 column![
-                    button(text("Select a file..."))
-                        .on_press(MyAppMessage::OpenFileDialog)
-                        .padding(15),
-                    Space::with_height(10),
-                    self.selected_file
-                        .as_ref()
-                        .map_or_else(|| text("No file selected"), |_| text("")),
-                    Space::with_height(20),
+                    if let Some(selected_file) = &self.selected_file {
+                        button(text(format!("Selected file: {}", selected_file.display())))
+                            .on_press(MyAppMessage::OpenFileDialog)
+                            .padding(15)
+                            .style(theme::Button::Secondary)
+                    } else {
+                        button(text("Select a file..."))
+                            .on_press(MyAppMessage::OpenFileDialog)
+                            .padding(15)
+                            .width(Length::Fixed(900.0))
+                            .style(theme::Button::Secondary)
+                    },
+                    Space::with_height(30),
                     
                     // Only show the Encrypt and Decrypt buttons if key and nonce input fields are not shown
                     if !self.show_key_nonce_input {
@@ -246,24 +260,24 @@ impl Sandbox for MyApp {
                                     Space::with_height(20),
             
                                     // Display Key and Nonce
-                                    text("Encryption Details"),
+                                    text("Encryption Details").size(22).style(iced::theme::Text::Color(iced::Color::from_rgb(0.0,0.5,0.9))),
                                     Space::with_height(10),
                                         
                                     row![
-                                        text("Key:").width(Length::Shrink),
+                                        text("Key:").width(Length::Shrink).style(iced::theme::Text::Color(iced::Color::from_rgb(0.0,0.5,0.9))),
                                         text(&self.key)
                                             .width(Length::Fill)
                                             .horizontal_alignment(iced::alignment::Horizontal::Center),
-                                        button("Copy").on_press(MyAppMessage::CopyKey) 
+                                        button("Copy").on_press(MyAppMessage::CopyKey).padding(10) 
                                     ]
                                     .align_items(iced::Alignment::Center),
                                     Space::with_height(10),
                                     row![
-                                        text("Nonce:").width(Length::Shrink),
+                                        text("Nonce:").width(Length::Shrink).style(iced::theme::Text::Color(iced::Color::from_rgb(0.0,0.5,0.9))),
                                         text(&self.nonce)
                                             .width(Length::Fill)
                                             .horizontal_alignment(iced::alignment::Horizontal::Center),
-                                        button("Copy").on_press(MyAppMessage::CopyNonce) 
+                                        button("Copy").on_press(MyAppMessage::CopyNonce).padding(10)
                                     ],
                                     Space::with_height(20),
                                 ]
@@ -304,21 +318,29 @@ impl Sandbox for MyApp {
                             ]
                             .spacing(10)
                             .align_items(iced::Alignment::Center)
-                        ]
+                        ].padding([50, 50])
+
                     } else {
                         column![]
                     },
     
                     // Show encryption or decryption status
+                    Space::with_height(10),
                     text(&self.encryption_status)
                         .width(Length::Fill)
-                        .horizontal_alignment(Horizontal::Center),
+                        .horizontal_alignment(Horizontal::Center)
+                        .size(15)
+                        .style(iced::theme::Text::Color(iced::Color::from_rgb(0.2, 0.8, 0.2))),
                     text(&self.decryption_status)
                         .width(Length::Fill)
-                        .horizontal_alignment(Horizontal::Center),
+                        .horizontal_alignment(Horizontal::Center)
+                        .size(15)
+                        .style(iced::theme::Text::Color(iced::Color::from_rgb(0.2, 0.8, 0.2))),
                     text(&self.copy_status)
                         .width(Length::Fill)
-                        .horizontal_alignment(Horizontal::Center),
+                        .horizontal_alignment(Horizontal::Center)
+                        .size(15)
+                        .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0,0.5,0.9))),
                 ]
                 .align_items(iced::Alignment::Center)
             )
