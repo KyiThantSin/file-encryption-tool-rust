@@ -130,6 +130,7 @@ impl Sandbox for MyApp {
                 self.key = String::new();
                 self.nonce = String::new();
                 self.selected_file = None;
+                self.copy_status = String::new();
             }
             MyAppMessage::StartDecryption => {
                 // Show input fields for key and nonce
@@ -138,6 +139,7 @@ impl Sandbox for MyApp {
                 self.key = String::new();
                 self.nonce = String::new();
                 self.selected_file = None;
+                self.copy_status = String::new();
             }
             MyAppMessage::KeyInputChanged(key) => {
                 self.key = key;
@@ -183,8 +185,8 @@ impl Sandbox for MyApp {
                     .width(Length::Fill)
                     .horizontal_alignment(Horizontal::Left)
                     .vertical_alignment(Vertical::Center)
-                    .size(25)
-                    .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0,0.5,0.8))),
+                    .size(28)
+                    .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0,0.5,0.9))),
                 Space::with_height(10),
                 text("Your Trusted File Encryption Tool").width(Length::Fill)
             ])
@@ -248,11 +250,11 @@ impl Sandbox for MyApp {
                                     Space::with_height(20),
             
                                     // Display Key and Nonce
-                                    text("Encryption Details"),
+                                    text("Encryption Details").size(22).style(iced::theme::Text::Color(iced::Color::from_rgb(0.0,0.5,0.9))),
                                     Space::with_height(10),
                                         
                                     row![
-                                        text("Key:").width(Length::Shrink),
+                                        text("Key:").width(Length::Shrink).style(iced::theme::Text::Color(iced::Color::from_rgb(0.0,0.5,0.9))),
                                         text(&self.key)
                                             .width(Length::Fill)
                                             .horizontal_alignment(iced::alignment::Horizontal::Center),
@@ -261,7 +263,7 @@ impl Sandbox for MyApp {
                                     .align_items(iced::Alignment::Center),
                                     Space::with_height(10),
                                     row![
-                                        text("Nonce:").width(Length::Shrink),
+                                        text("Nonce:").width(Length::Shrink).style(iced::theme::Text::Color(iced::Color::from_rgb(0.0,0.5,0.9))),
                                         text(&self.nonce)
                                             .width(Length::Fill)
                                             .horizontal_alignment(iced::alignment::Horizontal::Center),
@@ -312,15 +314,22 @@ impl Sandbox for MyApp {
                     },
     
                     // Show encryption or decryption status
+                    Space::with_height(10),
                     text(&self.encryption_status)
                         .width(Length::Fill)
-                        .horizontal_alignment(Horizontal::Center),
+                        .horizontal_alignment(Horizontal::Center)
+                        .size(20)
+                        .style(iced::theme::Text::Color(iced::Color::from_rgb(0.2, 0.8, 0.2))),
                     text(&self.decryption_status)
                         .width(Length::Fill)
-                        .horizontal_alignment(Horizontal::Center),
+                        .horizontal_alignment(Horizontal::Center)
+                        .size(20)
+                        .style(iced::theme::Text::Color(iced::Color::from_rgb(0.2, 0.8, 0.2))),
                     text(&self.copy_status)
                         .width(Length::Fill)
-                        .horizontal_alignment(Horizontal::Center),
+                        .horizontal_alignment(Horizontal::Center)
+                        .size(15)
+                        .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0,0.5,0.9))),
                 ]
                 .align_items(iced::Alignment::Center)
             )
