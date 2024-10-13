@@ -177,6 +177,10 @@ impl Sandbox for MyApp {
             }
         }
     }
+    
+    fn theme(&self) -> iced::Theme {
+        iced::Theme::Dark
+    }
 
     fn view(&self) -> Element<Self::Message> {
         column![
@@ -318,12 +322,12 @@ impl Sandbox for MyApp {
                     text(&self.encryption_status)
                         .width(Length::Fill)
                         .horizontal_alignment(Horizontal::Center)
-                        .size(20)
+                        .size(15)
                         .style(iced::theme::Text::Color(iced::Color::from_rgb(0.2, 0.8, 0.2))),
                     text(&self.decryption_status)
                         .width(Length::Fill)
                         .horizontal_alignment(Horizontal::Center)
-                        .size(20)
+                        .size(15)
                         .style(iced::theme::Text::Color(iced::Color::from_rgb(0.2, 0.8, 0.2))),
                     text(&self.copy_status)
                         .width(Length::Fill)
