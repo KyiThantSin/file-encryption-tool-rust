@@ -1,66 +1,45 @@
-use chacha20::cipher::{KeyIvInit, StreamCipher};
-use chacha20::ChaCha20;
-use rand::Rng;
-use std::fs::{File, OpenOptions};
-use std::io::{self, Read, Write};
-use std::path::Path;
-use hex;
+// chacha20.rs
+use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce}; 
+use chacha20poly1305::aead::{Aead, KeyInit};  
 
-pub fn encrypt_file<T: AsRef<Path>>(file_path: T) -> Result<(String, String), io::Error> {
-    let mut key = [0u8; 32];
-    let mut nonce = [0u8; 12];
-    rand::thread_rng().fill(&mut key);
-    rand::thread_rng().fill(&mut nonce);
+use std::fs::File;
+use std::io::{Read, Write};
+use std::path::Path;  
 
-    let mut file = File::open(file_path.as_ref())?;
-    let mut data = Vec::new();
-    file.read_to_end(&mut data)?;
+pub fn encrypt_file(input_path: &Path, key: &str, nonce: &str) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {    
+    let mut file = File::open(input_path)?;    
+    let mut contents = Vec::new();    
+    file.read_to_end(&mut contents)?;     
 
-    let mut cipher = ChaCha20::new(&key.into(), &nonce.into());
-    cipher.apply_keystream(&mut data);
+    let key = Key::from_slice(key.as_bytes());    
+    let nonce = Nonce::from_slice(nonce.as_bytes());    
+    let cipher = ChaCha20Poly1305::new(key);     
 
-    std::fs::create_dir_all("testings")?;
+    let encrypted_contents = cipher.encrypt(nonce, contents.as_ref())        
+        .map_err(|e| format!("Encryption error: {}", e))?;     
 
-    let mut file = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open("testings/encrypted_file.txt")?;
+    let output_path = input_path.with_extension("chacha20");    
+    let mut output_file = File::create(&output_path)?;    
+    output_file.write_all(&encrypted_contents)?;     
 
-    file.write_all(&data)?;
-    println!("Encrypted data written to file.");
+    Ok(output_path) 
+}  
 
-    let key_hex = hex::encode(key);
-    let nonce_hex = hex::encode(nonce);
+pub fn decrypt_file(input_path: &Path, key: &str, nonce: &str) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {    
+    let mut file = File::open(input_path)?;    
+    let mut contents = Vec::new();    
+    file.read_to_end(&mut contents)?;     
 
-    Ok((key_hex, nonce_hex))
-}
+    let key = Key::from_slice(key.as_bytes());    
+    let nonce = Nonce::from_slice(nonce.as_bytes());    
+    let cipher = ChaCha20Poly1305::new(key);     
 
-pub fn decrypt_file<T: AsRef<Path>>(file_path: T, key_hex: &str, nonce_hex: &str) -> Result<(), io::Error> {
-    let key = hex::decode(key_hex).map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
-    let nonce = hex::decode(nonce_hex).map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
+    let decrypted_contents = cipher.decrypt(nonce, contents.as_ref())        
+        .map_err(|e| format!("Decryption error: {}", e))?;     
 
-    if key.len() != 32 || nonce.len() != 12 {
-        return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid key or nonce length"));
-    }
+    let output_path = input_path.with_extension("decrypted");    
+    let mut output_file = File::create(&output_path)?;    
+    output_file.write_all(&decrypted_contents)?;     
 
-    let mut file = File::open(file_path.as_ref())?;
-    let mut data: Vec<u8> = Vec::new();
-    file.read_to_end(&mut data)?;
-
-    let mut cipher = ChaCha20::new(key.as_slice().into(), nonce.as_slice().into());
-    cipher.apply_keystream(&mut data);
-
-    std::fs::create_dir_all("testings")?;
-
-    let mut file = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open("testings/decrypted_file.txt")?;
-
-    file.write_all(&data)?;
-    println!("Decrypted data written to file.");
-
-    Ok(())
+    Ok(output_path) 
 }
