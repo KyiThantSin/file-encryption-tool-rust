@@ -1,11 +1,12 @@
 use crate::crypto::chacha20::{decrypt_file, encrypt_file};
+use crate::crypto::aes::{aes_encrypt_file, aes_decrypt_file};
 use iced::{
     alignment::{Horizontal, Vertical},
     widget::{button, column, container, pick_list, row, text, text_input, Space},
-    Element, Length, Sandbox,
+    Element, Length, Sandbox, theme
 };
 use rfd::FileDialog;
-
+use copypasta::{ClipboardContext, ClipboardProvider};
 
 #[derive(Debug, Clone)]
 pub enum MyAppMessage {
@@ -16,7 +17,12 @@ pub enum MyAppMessage {
     OpenFileDialog,
     KeyInputChanged(String),
     NonceInputChanged(String),
+    Encrypt,
     Decrypt,
+    BackToMain,
+    CopyKey,
+    CopyNonce,
+    DownloadFile,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -43,10 +49,11 @@ pub struct MyApp {
     pub encryption_status: String,
     pub decryption_status: String,
     pub selected_file: Option<std::path::PathBuf>,
-    pub file_content: String,
     pub key: String,
     pub nonce: String,
     pub show_key_nonce_input: bool,
+    pub copy_status: String,
+    pub processed_file: Option<std::path::PathBuf>,
 }
 
 impl Sandbox for MyApp {
@@ -57,11 +64,12 @@ impl Sandbox for MyApp {
             selected_algorithm: None,
             encryption_status: "".into(),
             decryption_status: "".into(),
+            copy_status:"".into(),
             selected_file: None,
-            file_content: "".into(),
             key: "".into(),
             nonce: "".into(),
             show_key_nonce_input: false,
+            processed_file: None,
         }
     }
 
@@ -74,90 +82,141 @@ impl Sandbox for MyApp {
             MyAppMessage::AlgorithmSelected(algorithm) => {
                 self.selected_algorithm = Some(algorithm);
             }
+            MyAppMessage::StartEncryption => {
+                self.show_key_nonce_input = true;
+                self.encryption_status = "Ready to encrypt".into();
+                self.decryption_status = "".into();
+            }
+            MyAppMessage::StartDecryption => {
+                self.show_key_nonce_input = true;
+                self.decryption_status = "Ready to decrypt".into();
+                self.encryption_status = "".into();
+            }
             MyAppMessage::FileSelected(file_path) => {
                 self.selected_file = file_path;
             }
             MyAppMessage::OpenFileDialog => {
                 if let Some(path) = FileDialog::new().pick_file() {
-                    self.update(MyAppMessage::FileSelected(Some(path)));
-                } else {
-                    self.update(MyAppMessage::FileSelected(None));
+                    self.selected_file = Some(path);
                 }
             }
-            MyAppMessage::StartEncryption => {
-                self.encryption_status = "Encryption started".into();
+            MyAppMessage::KeyInputChanged(new_key) => {
+                self.key = new_key;
+            }
+            MyAppMessage::NonceInputChanged(new_nonce) => {
+                self.nonce = new_nonce;
+            }
+            MyAppMessage::Encrypt => {
                 if let Some(selected_file) = &self.selected_file {
                     if let Some(algorithm) = self.selected_algorithm {
                         match algorithm {
-                            Algorithms::ChaCha20 => match encrypt_file(selected_file) {
-                                Ok((key, nonce)) => {
-                                    self.key = format!("{:x?}", key);
-                                    self.nonce = format!("{:?}", nonce);
-                                    self.encryption_status = format!("File encrypted successfully");
+                            Algorithms::ChaCha20 => {
+                                if self.key.is_empty() || self.nonce.is_empty() {
+                                    self.encryption_status = "Please provide both key and nonce for ChaCha20".into();
+                                    return;
                                 }
-                                Err(e) => {
-                                    self.encryption_status =
-                                        format!("Error encrypting file: {}", e);
+                                match encrypt_file(selected_file, &self.key, &self.nonce) {
+                                    Ok(encrypted_file_path) => {
+                                        self.encryption_status = format!("File encrypted successfully with ChaCha20. Saved to: {}", encrypted_file_path.display());
+                                        self.processed_file = Some(encrypted_file_path);
+                                    }
+                                    Err(e) => {
+                                        self.encryption_status = format!("Error encrypting file with ChaCha20: {}", e);
+                                    }
                                 }
                             },
                             Algorithms::AES => {
-                                // AES encryption logic
                                 if self.key.is_empty() {
-                                    self.encryption_status = "Please enter a key for AES encryption".into();
-                                } else {
-                                    // Use self.key in AES encryption logic here
-                                    self.encryption_status = format!("File encrypted successfully with AES");
+                                    self.encryption_status = "Please provide a key for AES".into();
+                                    return;
+                                }
+                                match aes_encrypt_file(selected_file, &self.key) {
+                                    Ok(encrypted_file_path) => {
+                                        self.encryption_status = format!("File encrypted successfully with AES. Saved to: {}", encrypted_file_path.display());
+                                        self.processed_file = Some(encrypted_file_path);
+                                    }
+                                    Err(e) => {
+                                        self.encryption_status = format!("Error encrypting file with AES: {}", e);
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-            MyAppMessage::StartDecryption => {
-                // Show input fields for key and nonce
-                self.show_key_nonce_input = true;
-            }
-            MyAppMessage::KeyInputChanged(key) => {
-                self.key = key;
-            }
-            MyAppMessage::NonceInputChanged(nonce) => {
-                self.nonce = nonce;
-            }
             MyAppMessage::Decrypt => {
-                // Start decryption when both key and nonce are provided
-                if self.key.is_empty() || self.nonce.is_empty() {
-                    self.decryption_status = "Please provide both key and nonce to decrypt".into();
-                } else {
-                    if let Some(selected_file) = &self.selected_file {
-                        if let Some(algorithm) = self.selected_algorithm {
-                            match algorithm {
-                                Algorithms::ChaCha20 => {
-                                    if let Err(e) = decrypt_file(selected_file) {
-                                        self.decryption_status =
-                                            format!("Error decrypting file: {}", e);
-                                    } else {
-                                        self.decryption_status = format!(
-                                            "File decrypted successfully: {:?}",
-                                            selected_file
-                                        );
-                                        self.show_key_nonce_input = false; // Hide input fields after successful decryption
+                if let Some(selected_file) = &self.selected_file {
+                    if let Some(algorithm) = self.selected_algorithm {
+                        match algorithm {
+                            Algorithms::ChaCha20 => {
+                                if self.key.is_empty() || self.nonce.is_empty() {
+                                    self.decryption_status = "Please provide both key and nonce for ChaCha20".into();
+                                    return;
+                                }
+                                match decrypt_file(selected_file, &self.key, &self.nonce) {
+                                    Ok(decrypted_file_path) => {
+                                        self.decryption_status = format!("File decrypted successfully with ChaCha20. Saved to: {}", decrypted_file_path.display());
+                                        self.processed_file = Some(decrypted_file_path);
+                                    }
+                                    Err(e) => {
+                                        self.decryption_status = format!("Error decrypting file with ChaCha20: {}", e);
                                     }
                                 }
-                                Algorithms::AES => {
-                                    // AES decryption logic
-                                    if self.key.is_empty() {
-                                        self.encryption_status = "Please enter a key for AES encryption".into();
-                                    } else {
-                                        // Use self.key in AES encryption logic here
-                                        self.encryption_status = format!("File encrypted successfully with AES");
+                            },
+                            Algorithms::AES => {
+                                if self.key.is_empty() {
+                                    self.decryption_status = "Please provide a key for AES".into();
+                                    return;
+                                }
+                                match aes_decrypt_file(selected_file, &self.key) {
+                                    Ok(decrypted_file_path) => {
+                                        self.decryption_status = format!("File decrypted successfully with AES. Saved to: {}", decrypted_file_path.display());
+                                        self.processed_file = Some(decrypted_file_path);
+                                    }
+                                    Err(e) => {
+                                        self.decryption_status = format!("Error decrypting file with AES: {}", e);
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+            }
+
+            MyAppMessage::BackToMain => {
+                self.show_key_nonce_input = false;
+                self.encryption_status = "".into();
+                self.decryption_status = "".into();
+            }
+            MyAppMessage::CopyKey => {
+                let mut ctx = ClipboardContext::new().unwrap();
+                ctx.set_contents(self.key.clone()).unwrap();
+                self.copy_status = "Key copied to clipboard".into();
+            }
+            MyAppMessage::CopyNonce => {
+                let mut ctx = ClipboardContext::new().unwrap();
+                ctx.set_contents(self.nonce.clone()).unwrap();
+                self.copy_status = "Nonce copied to clipboard".into();
+            }
+            MyAppMessage::DownloadFile => {
+                if let Some(file_path) = &self.processed_file {
+                    if let Some(save_path) = FileDialog::new()
+                        .set_file_name(file_path.file_name().unwrap().to_str().unwrap())
+                        .save_file() {
+                        if let Err(e) = std::fs::copy(file_path, save_path) {
+                            self.copy_status = format!("Error saving file: {}", e);
+                        } else {
+                            self.copy_status = "File saved successfully".into();
+                            self.processed_file = None; // Reset processed_file after successful download
                         }
                     }
                 }
             }
         }
+    }
+
+    fn theme(&self) -> iced::Theme {
+        iced::Theme::Dark
     }
 
     fn view(&self) -> Element<Self::Message> {
@@ -166,7 +225,9 @@ impl Sandbox for MyApp {
                 text("Encora")
                     .width(Length::Fill)
                     .horizontal_alignment(Horizontal::Left)
-                    .vertical_alignment(Vertical::Center),
+                    .vertical_alignment(Vertical::Center)
+                    .size(28)
+                    .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0,0.5,0.9))),
                 Space::with_height(10),
                 text("Your Trusted File Encryption Tool").width(Length::Fill)
             ])
@@ -179,141 +240,113 @@ impl Sandbox for MyApp {
                     Space::with_width(Length::Fill),
                     pick_list(
                         &Algorithms::ALL[..],
-                        self.selected_algorithm, // current selected algorithm
+                        self.selected_algorithm,
                         MyAppMessage::AlgorithmSelected
                     )
                     .placeholder("Select an algorithm")
                     .width(Length::Shrink),
                 ]
                 .width(Length::Fill),
-                Space::with_height(9),
+                Space::with_height(20),
                 text("Please choose one to proceed with encryption.").width(Length::Fill),
-                text(
-                    self.selected_algorithm
-                        .map_or("No algorithm selected".to_string(), |_| "".to_string())
-                )
-                .width(Length::Fill)
-                .horizontal_alignment(Horizontal::Center), // <-- Add a missing comma here
-                Space::with_height(9),
-                if let Some(algorithm) = self.selected_algorithm {
-                    if algorithm == Algorithms::AES {
-                        // Show the message and key input box if AES is selected
-                        column![
-                            text("You chose AES algorithm to encrypt or decrypt your file(s).").width(Length::Fill),
-                            Space::with_height(10),
-                            text("Enter your secret key for AES:").width(Length::Fill),
-                            text_input("Secret Key (Remember this for encryption/decryption)", &self.key)
-                                .on_input(MyAppMessage::KeyInputChanged)
-                                .padding(10)
-                                .width(Length::Fill),
-                        ]
-                        .padding([20, 0])
-                        .width(Length::Fill)
-                    } else {
-                        column![]
-                    }
-                } else {
-                    column![]
-                },
+                text(&self.encryption_status)
+                    .width(Length::Fill)
+                    .horizontal_alignment(Horizontal::Center)
             ])
             .padding([10, 50])
             .width(Length::Fill),
-    
+            Space::with_height(30),
             container(
                 column![
-                    button(text("Select a file..."))
-                        .on_press(MyAppMessage::OpenFileDialog)
-                        .padding(15),
-                    Space::with_height(10),
-                    self.selected_file
-                        .as_ref()
-                        .map_or_else(|| text("No file selected"), |_| text("")),
-                    Space::with_height(20),
-                    
-                    // Only show the Encrypt and Decrypt buttons if key and nonce input fields are not shown
+                    if let Some(selected_file) = &self.selected_file {
+                        button(text(format!("Selected file: {}", selected_file.display())))
+                            .on_press(MyAppMessage::OpenFileDialog)
+                            .padding(15)
+                            .style(theme::Button::Secondary)
+                    } else {
+                        button(text("Select a file..."))
+                            .on_press(MyAppMessage::OpenFileDialog)
+                            .padding(15)
+                            .width(Length::Fixed(900.0))
+                            .style(theme::Button::Secondary)
+                    },
+                    Space::with_height(30),
                     if !self.show_key_nonce_input {
-                        row![
-                            button(text("Encrypt"))
-                                .on_press(MyAppMessage::StartEncryption)
-                                .padding(10),
-                            Space::with_width(20),
-                            button(text("Decrypt"))
-                                .on_press(MyAppMessage::StartDecryption)
-                                .padding(10),
-                        ]
-                        .align_items(iced::Alignment::Center)
+                        container(
+                            row![
+                                button(text("Encrypt"))
+                                    .on_press(MyAppMessage::StartEncryption)
+                                    .padding(10),
+                                Space::with_width(20),
+                                button(text("Decrypt"))
+                                    .on_press(MyAppMessage::StartDecryption)
+                                    .padding(10),
+                            ]
+                            .align_items(iced::Alignment::Center)
+                        )
                     } else {
-                        row![]
-                    },
-    
-                        if self.encryption_status == "File encrypted successfully" {
-                            container(column![
-                                column![
-                                    Space::with_height(20),
-            
-                                    // Display Key and Nonce
-                                    text("Encryption Details"),
-                                    Space::with_height(10),
-                                        
-                                    row![
-                                        text("Key:").width(Length::Shrink),
-                                        text(&self.key)
-                                            .width(Length::Fill)
-                                            .horizontal_alignment(Horizontal::Center),
+                        container(
+                            column![
+                                text("Key:").width(Length::Shrink).horizontal_alignment(Horizontal::Left),
+                                Space::with_height(10),
+                                text_input("Enter Key", &self.key)
+                                    .on_input(MyAppMessage::KeyInputChanged)
+                                    .padding(10)
+                                    .width(Length::Fill),
+                                Space::with_height(20),
+                                if self.selected_algorithm == Some(Algorithms::ChaCha20) {
+                                    column![
+                                        text("Nonce:").width(Length::Shrink).horizontal_alignment(Horizontal::Left),
+                                        Space::with_height(10),
+                                        text_input("Enter Nonce", &self.nonce)
+                                            .on_input(MyAppMessage::NonceInputChanged)
+                                            .padding(10)
+                                            .width(Length::Fill),
+                                        Space::with_height(20),
                                     ]
-                                    .align_items(iced::Alignment::Center),
-                                    Space::with_height(10),
-                                    row![
-                                        text("Nonce:").width(Length::Shrink),
-                                        text(&self.nonce)
-                                            .width(Length::Fill)
-                                            .horizontal_alignment(Horizontal::Center)
-                                    ],
-                                    Space::with_height(20),
+                                } else {
+                                    column![]
+                                },
+                                row![
+                                    button(text(if self.encryption_status.contains("encrypt") { "Encrypt" } else { "Decrypt" }))
+                                        .on_press(if self.encryption_status.contains("encrypt") { MyAppMessage::Encrypt } else { MyAppMessage::Decrypt })
+                                        .padding(10),
+                                    Space::with_width(20),
+                                    button(text("Back"))
+                                        .on_press(MyAppMessage::BackToMain)
+                                        .padding(10),
                                 ]
-                                .align_items(iced::Alignment::Center),
-                                text("Please save the key and nonce somewhere safe in order to decrypt the file"),
-                            ])
-                            .width(Length::Fill)
-                            .padding([50, 50])
-                        } else {
-                            container(column![])
-                        },
-    
-                    // Show key and nonce input fields when decrypt button is clicked
-                    if self.show_key_nonce_input {
-                        column![
-                            text("Key:").width(Length::Shrink).horizontal_alignment(Horizontal::Left),
-                            Space::with_height(10),
-                            text_input("Enter Key", &self.key)
-                                .on_input(MyAppMessage::KeyInputChanged)
-                                .padding(10)
-                                .width(Length::Fill),
-                            Space::with_height(20),
-                            text("Nonce:").width(Length::Shrink).horizontal_alignment(Horizontal::Left),
-                            Space::with_height(10),
-                            text_input("Enter Nonce", &self.nonce)
-                                .on_input(MyAppMessage::NonceInputChanged)
-                                .padding(10)
-                                .width(Length::Fill),
-                            Space::with_height(20),
-                            button(text("Decrypt Now"))
-                                .on_press(MyAppMessage::Decrypt)
-                                .padding(10)
-                        ]
-                        .padding(20)
-                        .into()
-                    } else {
-                        column![]
+                                .spacing(10)
+                                .align_items(iced::Alignment::Center)
+                            ].padding([50, 50])
+                        )
                     },
-    
-                    // Show encryption or decryption status
+
+                    Space::with_height(10),
                     text(&self.encryption_status)
                         .width(Length::Fill)
-                        .horizontal_alignment(Horizontal::Center),
+                        .horizontal_alignment(Horizontal::Center)
+                        .size(15)
+                        .style(iced::theme::Text::Color(iced::Color::from_rgb(0.2, 0.8, 0.2))),
                     text(&self.decryption_status)
                         .width(Length::Fill)
                         .horizontal_alignment(Horizontal::Center)
+                        .size(15)
+                        .style(iced::theme::Text::Color(iced::Color::from_rgb(0.2, 0.8, 0.2))),
+                    text(&self.copy_status)
+                        .width(Length::Fill)
+                        .horizontal_alignment(Horizontal::Center)
+                        .size(15)
+                        .style(iced::theme::Text::Color(iced::Color::from_rgb(0.0,0.5,0.9))),
+                    if self.processed_file.is_some() {
+                        container(
+                            button(text("Download Processed File"))
+                                .on_press(MyAppMessage::DownloadFile)
+                                .padding(10)
+                        )
+                    } else {
+                        container(Space::with_height(0))
+                    },
                 ]
                 .align_items(iced::Alignment::Center)
             )
@@ -323,5 +356,5 @@ impl Sandbox for MyApp {
             .height(Length::Fill),
         ]
         .into()
-    }    
+    }
 }
