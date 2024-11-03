@@ -59,9 +59,15 @@ pub fn decrypt_file<T: AsRef<Path>>(file_path: T, key_hex: &str, nonce_hex: &str
     let mut cipher = ChaCha20::new(key.as_slice().into(), nonce.as_slice().into());
     cipher.apply_keystream(&mut data);
 
-    std::fs::create_dir_all("testings")?;
-    let output_path = PathBuf::from("testings/decrypted_file.txt");
+    let original_name = file_path.as_ref()
+        .file_stem()
+        .and_then(|name| name.to_str())
+        .unwrap_or("decrypted_file");
+    let output_name = format!("{}_decrypted.txt", original_name);
+    let output_path = PathBuf::from("testings").join(output_name);
 
+    std::fs::create_dir_all("testings")?;
+    
     let mut file = OpenOptions::new()
         .write(true)
         .create(true)
