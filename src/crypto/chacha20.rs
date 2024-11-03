@@ -3,10 +3,10 @@ use chacha20::ChaCha20;
 use rand::Rng;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use hex;
 
-pub fn encrypt_file<T: AsRef<Path>>(file_path: T) -> Result<(String, String), io::Error> {
+pub fn encrypt_file<T: AsRef<Path>>(file_path: T) -> Result<(String, String, PathBuf), io::Error> {
     let mut key = [0u8; 32];
     let mut nonce = [0u8; 12];
     rand::thread_rng().fill(&mut key);
@@ -20,23 +20,23 @@ pub fn encrypt_file<T: AsRef<Path>>(file_path: T) -> Result<(String, String), io
     cipher.apply_keystream(&mut data);
 
     std::fs::create_dir_all("testings")?;
+    let output_path = PathBuf::from("testings/encrypted_file.txt");
 
     let mut file = OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(true)
-        .open("testings/encrypted_file.txt")?;
+        .open(&output_path)?;
 
     file.write_all(&data)?;
-    println!("Encrypted data written to file.");
 
     let key_hex = hex::encode(key);
     let nonce_hex = hex::encode(nonce);
 
-    Ok((key_hex, nonce_hex))
+    Ok((key_hex, nonce_hex, output_path))
 }
 
-pub fn decrypt_file<T: AsRef<Path>>(file_path: T, key_hex: &str, nonce_hex: &str) -> Result<(), io::Error> {
+pub fn decrypt_file<T: AsRef<Path>>(file_path: T, key_hex: &str, nonce_hex: &str) -> Result<PathBuf, io::Error> {
     let key = hex::decode(key_hex).map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
     let nonce = hex::decode(nonce_hex).map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
 
@@ -52,15 +52,15 @@ pub fn decrypt_file<T: AsRef<Path>>(file_path: T, key_hex: &str, nonce_hex: &str
     cipher.apply_keystream(&mut data);
 
     std::fs::create_dir_all("testings")?;
+    let output_path = PathBuf::from("testings/decrypted_file.txt");
 
     let mut file = OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(true)
-        .open("testings/decrypted_file.txt")?;
+        .open(&output_path)?;
 
     file.write_all(&data)?;
-    println!("Decrypted data written to file.");
 
-    Ok(())
+    Ok(output_path)
 }
