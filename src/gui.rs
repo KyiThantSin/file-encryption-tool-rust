@@ -160,7 +160,7 @@ impl Sandbox for MyApp {
                             self.copy_status = format!("Error saving file: {}", e);
                         } else {
                             self.copy_status = "File saved successfully".into();
-                            self.processed_file = None; // Reset processed_file after successful download
+                            self.processed_file = None; // Reset processed_file
                         }
                     }
                 }
@@ -174,15 +174,18 @@ impl Sandbox for MyApp {
                         if let Some(algorithm) = self.selected_algorithm {
                             match algorithm {
                                 Algorithms::ChaCha20 => {
-                                    if let Err(e) = decrypt_file(selected_file, &self.key, &self.nonce) {
-                                        self.decryption_status =
-                                            format!("Error decrypting file: {}", e);
-                                    } else {
-                                        self.decryption_status = format!(
-                                            "File decrypted successfully: {:?}",
-                                            selected_file
-                                        );
-                                        self.show_key_nonce_input = false; // Hide input fields after successful decryption
+                                    match decrypt_file(selected_file, &self.key, &self.nonce) {
+                                        Ok(output_path) => {
+                                            self.processed_file = Some(output_path); // for download
+                                            self.decryption_status = format!(
+                                                "File decrypted successfully: {:?}",
+                                                selected_file
+                                            );
+                                            self.show_key_nonce_input = false; // Hide input fields after successful decryption
+                                        }
+                                        Err(e) => {
+                                            self.decryption_status = format!("Error decrypting file: {}", e);
+                                        }
                                     }
                                 }
                                 Algorithms::AES => {
@@ -192,7 +195,7 @@ impl Sandbox for MyApp {
                         }
                     }
                 }
-            }
+            }            
         }
     }
     
@@ -256,7 +259,6 @@ impl Sandbox for MyApp {
                     },
                     Space::with_height(30),
                     
-                    // Only show the Encrypt and Decrypt buttons if key and nonce input fields are not shown
                     if !self.show_key_nonce_input {
                         row![
                             button(text("Encrypt"))
@@ -266,16 +268,21 @@ impl Sandbox for MyApp {
                             button(text("Decrypt"))
                                 .on_press(MyAppMessage::StartDecryption)
                                 .padding(10),
+                            Space::with_width(20),
+                            if self.processed_file.is_some() {
 
-                            button(text("Download"))
-                                .on_press(MyAppMessage::DownloadFile)
-                                .padding(10),
+                                button(text("Download File"))
+                                    .on_press(MyAppMessage::DownloadFile)
+                                    .padding(10)
+                            } else {
+                                button(text("")).width(0)
+                            }
                         ]
                         .align_items(iced::Alignment::Center)
                     } else {
                         row![]
                     },
-    
+                    
                         if self.encryption_status == "File encrypted successfully" {
                             container(column![
                                 column![
@@ -305,11 +312,14 @@ impl Sandbox for MyApp {
                                 ]
                                 .align_items(iced::Alignment::Center),
                                 text("Please save the key and nonce somewhere safe in order to decrypt the file"),
-                                
-
+                                Space::with_height(20),
+                                button("Download Encrypted File")
+                                .on_press(MyAppMessage::DownloadFile)
+                                .padding(10)
+                                .style(theme::Button::Primary)
                             ])
                             .width(Length::Fill)
-                            .padding([50, 50])
+                            .padding([50, 20])
 
                         } else {
                             container(column![])
@@ -340,6 +350,7 @@ impl Sandbox for MyApp {
                                 button(text("Back"))
                                     .on_press(MyAppMessage::BackToMain)
                                     .padding(10),
+                                Space::with_height(20),
                             ]
                             .spacing(10)
                             .align_items(iced::Alignment::Center)
@@ -361,6 +372,7 @@ impl Sandbox for MyApp {
                         .horizontal_alignment(Horizontal::Center)
                         .size(15)
                         .style(iced::theme::Text::Color(iced::Color::from_rgb(0.2, 0.8, 0.2))),
+                    Space::with_height(10),
                     text(&self.copy_status)
                         .width(Length::Fill)
                         .horizontal_alignment(Horizontal::Center)
