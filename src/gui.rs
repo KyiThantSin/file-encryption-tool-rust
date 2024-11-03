@@ -312,11 +312,6 @@ impl Sandbox for MyApp {
                                 ]
                                 .align_items(iced::Alignment::Center),
                                 text("Please save the key and nonce somewhere safe in order to decrypt the file"),
-                                Space::with_height(20),
-                                button("Download Encrypted File")
-                                .on_press(MyAppMessage::DownloadFile)
-                                .padding(10)
-                                .style(theme::Button::Primary)
                             ])
                             .width(Length::Fill)
                             .padding([50, 20])
