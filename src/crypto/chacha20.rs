@@ -6,9 +6,11 @@ use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use hex;
 
+
 pub fn encrypt_file<T: AsRef<Path>>(file_path: T) -> Result<(String, String, PathBuf), io::Error> {
     let mut key = [0u8; 32];
     let mut nonce = [0u8; 12];
+   
     rand::thread_rng().fill(&mut key);
     rand::thread_rng().fill(&mut nonce);
 
@@ -19,9 +21,15 @@ pub fn encrypt_file<T: AsRef<Path>>(file_path: T) -> Result<(String, String, Pat
     let mut cipher = ChaCha20::new(&key.into(), &nonce.into());
     cipher.apply_keystream(&mut data);
 
-    std::fs::create_dir_all("testings")?;
-    let output_path = PathBuf::from("testings/encrypted_file.txt");
+    let original_name = file_path.as_ref()
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("encrypted_file");
+    let output_name = format!("{}_encrypted.txt", original_name);
+    let output_path = PathBuf::from("testings").join(output_name);
 
+    std::fs::create_dir_all("testings")?;
+    
     let mut file = OpenOptions::new()
         .write(true)
         .create(true)
