@@ -1,45 +1,80 @@
-// chacha20.rs
-use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce}; 
-use chacha20poly1305::aead::{Aead, KeyInit};  
+use chacha20::cipher::{KeyIvInit, StreamCipher};
+use chacha20::ChaCha20;
+use rand::Rng;
+use std::fs::{File, OpenOptions};
+use std::io::{self, Read, Write};
+use std::path::{Path, PathBuf};
+use hex;
 
-use std::fs::File;
-use std::io::{Read, Write};
-use std::path::Path;  
 
-pub fn encrypt_file(input_path: &Path, key: &str, nonce: &str) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {    
-    let mut file = File::open(input_path)?;    
-    let mut contents = Vec::new();    
-    file.read_to_end(&mut contents)?;     
+pub fn encrypt_file<T: AsRef<Path>>(file_path: T) -> Result<(String, String, PathBuf), io::Error> {
+    let mut key = [0u8; 32];
+    let mut nonce = [0u8; 12];
+   
+    rand::thread_rng().fill(&mut key);
+    rand::thread_rng().fill(&mut nonce);
 
-    let key = Key::from_slice(key.as_bytes());    
-    let nonce = Nonce::from_slice(nonce.as_bytes());    
-    let cipher = ChaCha20Poly1305::new(key);     
+    let mut file = File::open(file_path.as_ref())?;
+    let mut data = Vec::new();
+    file.read_to_end(&mut data)?;
 
-    let encrypted_contents = cipher.encrypt(nonce, contents.as_ref())        
-        .map_err(|e| format!("Encryption error: {}", e))?;     
+    let mut cipher = ChaCha20::new(&key.into(), &nonce.into());
+    cipher.apply_keystream(&mut data);
 
-    let output_path = input_path.with_extension("chacha20");    
-    let mut output_file = File::create(&output_path)?;    
-    output_file.write_all(&encrypted_contents)?;     
+    let original_name = file_path.as_ref()
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("encrypted_file");
+    let output_name = format!("{}_encrypted.txt", original_name);
+    let output_path = PathBuf::from("testings").join(output_name);
 
-    Ok(output_path) 
-}  
+    std::fs::create_dir_all("testings")?;
+    
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&output_path)?;
 
-pub fn decrypt_file(input_path: &Path, key: &str, nonce: &str) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {    
-    let mut file = File::open(input_path)?;    
-    let mut contents = Vec::new();    
-    file.read_to_end(&mut contents)?;     
+    file.write_all(&data)?;
 
-    let key = Key::from_slice(key.as_bytes());    
-    let nonce = Nonce::from_slice(nonce.as_bytes());    
-    let cipher = ChaCha20Poly1305::new(key);     
+    let key_hex = hex::encode(key);
+    let nonce_hex = hex::encode(nonce);
 
-    let decrypted_contents = cipher.decrypt(nonce, contents.as_ref())        
-        .map_err(|e| format!("Decryption error: {}", e))?;     
+    Ok((key_hex, nonce_hex, output_path))
+}
 
-    let output_path = input_path.with_extension("decrypted");    
-    let mut output_file = File::create(&output_path)?;    
-    output_file.write_all(&decrypted_contents)?;     
+pub fn decrypt_file<T: AsRef<Path>>(file_path: T, key_hex: &str, nonce_hex: &str) -> Result<PathBuf, io::Error> {
+    let key = hex::decode(key_hex).map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
+    let nonce = hex::decode(nonce_hex).map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
 
-    Ok(output_path) 
+    if key.len() != 32 || nonce.len() != 12 {
+        return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid key or nonce length"));
+    }
+
+    let mut file = File::open(file_path.as_ref())?;
+    let mut data: Vec<u8> = Vec::new();
+    file.read_to_end(&mut data)?;
+
+    let mut cipher = ChaCha20::new(key.as_slice().into(), nonce.as_slice().into());
+    cipher.apply_keystream(&mut data);
+
+    let original_name = file_path.as_ref()
+        .file_stem()
+        .and_then(|name| name.to_str())
+        .unwrap_or("decrypted_file");
+    let output_name = format!("{}_decrypted.txt", original_name);
+    let output_path = PathBuf::from("testings").join(output_name);
+
+    std::fs::create_dir_all("testings")?;
+    
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&output_path)?;
+
+    file.write_all(&data)?;
+
+    Ok(output_path)
 }
