@@ -4,8 +4,9 @@ Encora is a file encryption tool built with Rust, featuring a user-friendly inte
 ## Features
 - **Supports AES and ChaCha20 Algorithms:** Choose between two secure encryption and decryption options.
 - **User-Friendly GUI:** Built with Iced, enabling an intuitive and easy-to-use interface.
+- **Compatible with All File Types:** Encrypt and decrypt files of any type using ChaCha20 algorithm, including PNG, PDF, video files, and more, while preserving the original file format.
 - **Clipboard Support:** Copy generated encryption keys and nonces to your clipboard for easy storage.
-- **Save Encrypted/Decrypted Files:** Save your processed files in your desired location.
+- **Download Encrypted/Decrypted Files:** Download your processed files in your desired location.
 
 ## Installation Instructions
 ### Prerequisites
