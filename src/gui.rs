@@ -1,4 +1,4 @@
-use crate::crypto::{chacha20, aes};
+use crate::crypto::{aes, chacha20};
 use iced::{
     alignment::{Horizontal, Vertical},
     widget::{button, column, container, pick_list, row, text, text_input, Space},
@@ -62,7 +62,7 @@ impl Sandbox for MyApp {
             selected_algorithm: None,
             encryption_status: "".into(),
             decryption_status: "".into(),
-            copy_status:"".into(),
+            copy_status: "".into(),
             selected_file: None,
             key: "".into(),
             nonce: "".into(),
@@ -102,7 +102,7 @@ impl Sandbox for MyApp {
                                     self.key = format!("{:x?}", key);
                                     self.nonce = format!("{:?}", nonce);
                                     self.processed_file = Some(output_path);
-                                    self.encryption_status = format!("File encrypted successfully");
+                                    self.encryption_status = "File encrypted successfully".into();
                                 }
                                 Err(e) => {
                                     self.encryption_status = format!("Error encrypting file: {}", e);
@@ -113,7 +113,7 @@ impl Sandbox for MyApp {
                                     self.key = format!("{:x?}", key);
                                     self.nonce = format!("{:?}", nonce);
                                     self.processed_file = Some(output_path);
-                                    self.encryption_status = format!("File encrypted successfully");
+                                    self.encryption_status = "File encrypted successfully".into();
                                 }
                                 Err(e) => {
                                     self.encryption_status = format!("Error encrypting file: {}", e);
@@ -208,7 +208,7 @@ impl Sandbox for MyApp {
             }
         }
     }
-    
+
     fn theme(&self) -> iced::Theme {
         iced::Theme::Dark
     }
@@ -298,6 +298,7 @@ impl Sandbox for MyApp {
                                 column![
                                     Space::with_height(20),
             
+                                    // Display Key and Nonce
                                     text("Encryption Details").size(22).style(iced::theme::Text::Color(iced::Color::from_rgb(0.0,0.5,0.9))),
                                     Space::with_height(10),
                                         
@@ -329,6 +330,7 @@ impl Sandbox for MyApp {
                             container(column![])
                         },
     
+                    // Show key and nonce input fields when decrypt button is clicked
                     if self.show_key_nonce_input {
                         column![
                             text("Key:").width(Length::Shrink).horizontal_alignment(Horizontal::Left),
