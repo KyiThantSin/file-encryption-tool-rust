@@ -8,7 +8,6 @@ chacha20 = "0.9.1"
 iced = { version = "0.12.1"}
 rfd = "0.15.0"
 rand ="0.8.5"
-sha2 = "0.10"
 hex = "0.4.3"
 copypasta = "0.10.1"
 cipher = "0.3"
