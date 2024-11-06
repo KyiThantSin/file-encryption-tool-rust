@@ -1,4 +1,5 @@
 use crate::crypto::chacha20::{decrypt_file, encrypt_file};
+use crate::crypto::aes::{aes_decrypt_file, aes_encrypt_file};
 use iced::{
     alignment::{Horizontal, Vertical},
     widget::{button, column, container, pick_list, row, text, text_input, Space},
@@ -109,8 +110,18 @@ impl Sandbox for MyApp {
                                         format!("Error encrypting file: {}", e);
                                 }
                             },
-                            Algorithms::AES => {
-                                // AES encryption logic
+                            Algorithms::AES => match aes_encrypt_file(selected_file) {
+                                Ok((key, nonce, encrypted_file_path)) => {
+                                    self.encryption_status = format!("File encrypted successfully");
+                  
+                                    self.key = format!("{:x?}", key);
+                                    self.nonce = format!("{:?}", nonce);
+                                    self.processed_file = Some(encrypted_file_path);
+                                    
+                                }
+                                Err(e) => {
+                                    self.encryption_status = format!("Error encrypting file with AES: {}", e);
+                                }
                             }
                         }
                     }
@@ -189,7 +200,20 @@ impl Sandbox for MyApp {
                                     }
                                 }
                                 Algorithms::AES => {
-                                    // AES decryption logic
+                                    if self.key.is_empty() {
+                                        self.decryption_status = "Please provide a key for AES".into();
+                                        return;
+                                    }
+                                    match aes_decrypt_file(selected_file, &self.key, &self.nonce) {
+                                        Ok(decrypted_file_path) => {
+                                            self.decryption_status = format!("File decrypted successfully with AES. Saved to: {}", decrypted_file_path.display());
+                                            self.processed_file = Some(decrypted_file_path);
+                                            self.show_key_nonce_input = false;
+                                        }
+                                        Err(e) => {
+                                            self.decryption_status = format!("Error decrypting file with AES: {}", e);
+                                        }
+                                    }
                                 }
                             }
                         }
